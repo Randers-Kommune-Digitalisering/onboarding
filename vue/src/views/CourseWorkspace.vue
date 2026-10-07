@@ -336,7 +336,7 @@
                             <i class="far fa-edit" aria-hidden="true"></i> Redigér{{ isCompleted ? ' / genoptag' : '' }} forløb
                         </router-link>
 
-                        <router-link v-if="!isTemplate && !isPreparationCourse" class="action" :to="`${COURSE_PATH}/send-velkomst?id=${courseId}`">
+                        <router-link v-if="!isTemplate && !isPreparationCourse && !isCompleted" class="action" :to="`${COURSE_PATH}/send-velkomst?id=${courseId}`">
                             <i class="far fa-envelope" aria-hidden="true"></i> Send velkomstmail
                         </router-link>
                         <router-link v-if="isPreparationCourse" class="action" :to="`${COURSE_PATH}/start-forloeb?id=${courseId}`">
