@@ -1,5 +1,5 @@
 <script setup>
-	import { ref, onMounted, watch, computed } from 'vue'
+	import { computed, onMounted, ref, watch } from 'vue'
 	import { useRoute, useRouter } from 'vue-router'
 
 	import { getUserInfo } from '@/services/keycloakService.js'
@@ -7,24 +7,27 @@
 	import { getOpgaveskabeloner } from '@/services/opgaveskabelonService.js'
 
 	import CourseList from '@/components/CourseList.vue'
-	import TaskList from '@/components/TaskList.vue' // Import TaskList component
+	import PageHeader from '@/components/PageHeader.vue'
+	import TaskCard from '@/components/TaskCard.vue'
 
 	const route = useRoute()
 	const router = useRouter()
-	const view = route.query.view
-	const scrollToItem = computed(() => {
-		const parsed = parseInt(route.query.item, 10)
-		return Number.isNaN(parsed) ? null : parsed
-	})
 
 	const TemplateType = {
 		Forloebsskabelon: 0,
 		Opgaveskabelon: 1
 	}
-	
+
+	const userInfo = ref(null)
+	const isLoading = ref(true)
 	const forloebTemplates = ref([])
 	const opgaveTemplates = ref([])
-	const selectedType = ref(view == '0' ? TemplateType.Forloebsskabelon : view == '1' ? TemplateType.Opgaveskabelon : TemplateType.Forloebsskabelon)
+	const selectedType = ref(route.query.view == '1' ? TemplateType.Opgaveskabelon : TemplateType.Forloebsskabelon)
+
+	const scrollToItem = computed(() => {
+		const parsed = parseInt(route.query.item, 10)
+		return Number.isNaN(parsed) ? null : parsed
+	})
 
 	const selectTemplateType = (type) => {
 		selectedType.value = type
@@ -32,33 +35,17 @@
 	}
 
 	const fetchTemplates = async () => {
-
-		let userInfo = await getUserInfo()
-		const loggedInAdmin = userInfo.email || null
-		
-		if(!loggedInAdmin) {
-			console.error("No admin email found")
-			return
+		isLoading.value = true
+		try {
+			userInfo.value ??= await getUserInfo()
+			if (selectedType.value === TemplateType.Forloebsskabelon)
+				forloebTemplates.value = [(await getForloebsskabeloner())?.data ?? []].flat()
+			else
+				opgaveTemplates.value = [(await getOpgaveskabeloner())?.data ?? []].flat()
+		} catch (error) {
+			console.error('Error fetching templates:', error)
 		}
-
-		const headers =  { adminmail: loggedInAdmin }
-		let response
-
-		if (selectedType.value === TemplateType.Forloebsskabelon)
-			response = await getForloebsskabeloner({headers})
-		else
-			response = await getOpgaveskabeloner({headers})
-
-		if (response.data == null)
-			return
-
-		if (!Array.isArray(response.data))
-			response.data = [response.data]
-
-		if (selectedType.value === TemplateType.Forloebsskabelon)
-			forloebTemplates.value = response.data
-		else
-			opgaveTemplates.value = response.data
+		isLoading.value = false
 	}
 
 	onMounted(fetchTemplates)
@@ -66,73 +53,76 @@
 </script>
 
 <template>
-    <div class="flex"><div class="max-width"><!-- wrapper -->
+	<PageHeader eyebrow="ADMINISTRATION" title="Skabeloner" lead="Genbrug forløb og opgaver på tværs af flere medarbejdere.">
+		<template #actions>
+			<router-link v-if="selectedType == TemplateType.Forloebsskabelon" class="action action-primary" to="/create-forloebsskabelon">
+				<i class="fas fa-plus" aria-hidden="true"></i> Opret forløbsskabelon
+			</router-link>
+			<router-link v-else class="action action-primary" to="/create-opgave?template=true">
+				<i class="fas fa-plus" aria-hidden="true"></i> Opret opgaveskabelon
+			</router-link>
+		</template>
+	</PageHeader>
 
-	<div
-		class="float-right helper-text"
-        @mousedown.prevent
-        @click.prevent
-	>
-		<div class="header-small">Forløbsskabeloner</div>
-		<div>
-			<span>Forløbsskabeloner er en skabelon til et helt forløb (med flere opgaver), som du kan genbruge til flere medarbejdere.</span>
-			<span>Når du opretter et nyt forløb, kan du vælge at basere den på en forløbsskabelon. Dette vil kopiere opgaverne ind i det nye forløb – inkl. deres planlagte start- og sluttidspunkter.</span>
-		</div>
-		<br />
-		<div class="header-small">Opgaveskabeloner</div>
-		<div>
-			<span>Opgaveskabeloner er en skabelon til en enkelt opgave, som kan genbruges på tværs af flere forløb og forløbsskabeloner.</span>
-			<span>Når du opretter en ny opgave (i et eksisterende forløb eller på en forløbsskabelon), kan du vælge at tage udgangspunkt i en opgaveskabelon. Dette vil kopiere oplysningerne fra skabelonen til den nye opgave.</span>
+	<div class="page-content shell-width">
+		<div class="template-layout">
+			<div class="template-main">
+				<div class="segmented" role="tablist" aria-label="Skabelontype">
+					<button type="button" role="tab" :aria-selected="selectedType == TemplateType.Forloebsskabelon" :class="{ 'is-selected': selectedType == TemplateType.Forloebsskabelon }" @click="selectTemplateType(TemplateType.Forloebsskabelon)">
+						<i class="far fa-folder" aria-hidden="true"></i> Forløbsskabeloner
+					</button>
+					<button type="button" role="tab" :aria-selected="selectedType == TemplateType.Opgaveskabelon" :class="{ 'is-selected': selectedType == TemplateType.Opgaveskabelon }" @click="selectTemplateType(TemplateType.Opgaveskabelon)">
+						<i class="fas fa-list-ul" aria-hidden="true"></i> Opgaveskabeloner
+					</button>
+				</div>
+
+				<div v-if="isLoading" class="loading-block" aria-hidden="true"></div>
+				<CourseList v-else-if="selectedType == TemplateType.Forloebsskabelon"
+							:courses="forloebTemplates"
+							emptyText="Der er ingen forløbsskabeloner endnu." />
+				<template v-else>
+					<div v-if="opgaveTemplates.length" class="task-group is-ungrouped">
+						<div class="task-list">
+							<TaskCard v-for="task in opgaveTemplates"
+									  :key="task.OpgaveskabelonID"
+									  :task="task"
+									  :userInfo="userInfo"
+									  :highlight="scrollToItem === task.OpgaveskabelonID"
+									  @changed="fetchTemplates" />
+						</div>
+					</div>
+					<div v-else class="empty-section">Der er ingen opgaveskabeloner endnu.</div>
+				</template>
+			</div>
+
+			<aside class="helper-text template-help">
+				<div class="header-small">Forløbsskabeloner</div>
+				<span>En forløbsskabelon er et helt forløb med flere opgaver, som du kan genbruge til flere medarbejdere.</span>
+				<span>Når du opretter et nyt forløb, kan du basere det på en forløbsskabelon. Opgaverne kopieres ind i det nye forløb – inkl. deres planlagte start- og sluttidspunkter.</span>
+				<div class="header-small help-spacer">Opgaveskabeloner</div>
+				<span>En opgaveskabelon er en enkelt opgave, som kan genbruges på tværs af flere forløb og forløbsskabeloner.</span>
+				<span>Når du opretter en ny opgave, kan du tage udgangspunkt i en opgaveskabelon. Oplysningerne fra skabelonen kopieres til den nye opgave.</span>
+			</aside>
 		</div>
 	</div>
-	<div class="navItems">
-		<div @click="selectTemplateType(TemplateType.Forloebsskabelon)" :class="['navItem', {'selected': selectedType==TemplateType.Forloebsskabelon}]">
-			<i class="fa-regular fa-calendar fa-xl"></i>
-			<span>Forløbsskabeloner</span>
-		</div>
-		<div @click="selectTemplateType(TemplateType.Opgaveskabelon)" :class="['navItem', {'selected': selectedType==TemplateType.Opgaveskabelon}]">
-			<i class="fa-solid fa-list-ul fa-xl"></i>
-			<span>Opgaveskabeloner</span>
-		</div>
-	</div>
-    <p class="indent-tiny bold uppercase p-header-adjust">{{ selectedType==TemplateType.Forloebsskabelon ? 'Forløbsskabeloner' : 'Opgaveskabeloner' }}</p>
-	<div class="buttons">
-        <router-link v-if="selectedType==TemplateType.Forloebsskabelon" :to="`/create-forloebsskabelon`" class="button">+ Opret forløbsskabelon</router-link>
-        <router-link v-if="selectedType==TemplateType.Opgaveskabelon" :to="`/create-opgave?template=true`" class="button">+ Opret opgaveskabelon</router-link>
-    </div>
-  	<CourseList v-if="selectedType==TemplateType.Forloebsskabelon" :courses="forloebTemplates" title="" />
-	<TaskList v-if="selectedType==TemplateType.Opgaveskabelon"
-			  :tasks="opgaveTemplates"
-			  title=""
-			  :templateView="true"
-			  :scrollToItem="scrollToItem" />
-
-	</div></div><!-- /wrapper -->
 </template>
 
 <style scoped>
-.navItems {
-	display: flex;
-	justify-content: flex-start;
-	margin-bottom: 1rem;
-	gap: 0.6rem;
-	border-bottom: 0.25rem solid var(--color-card-dark);
-}
-.navItems .navItem {
-	background-color: var(--color-card-faded);
-}
-.navItems .navItem.selected {
-	background: linear-gradient(to bottom, var(--color-card-faded), var(--color-background));
-	background-color: var(--color-background);
-	pointer-events: none;
-	border-top: 0.25rem solid var(--color-card-dark);
-	border-left: 0.25rem solid var(--color-card-dark);
-	border-right: 0.25rem solid var(--color-card-dark);
-	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0;
-	transform: translateY(0.25rem);
-}
-.navItems .navItem:not(.selected) {
-	margin-bottom: 0.4rem;
-}
+	.template-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 40px; align-items: start; }
+	.template-main { min-width: 0; }
+	.template-help { position: sticky; top: calc(var(--site-shell-height) + 24px); }
+	.help-spacer { margin-top: 16px; }
+	.segmented { display: inline-flex; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+	.segmented button { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 16px; border: 0; background: transparent; color: var(--ink-soft); font-size: 12px; font-weight: 600; cursor: pointer; }
+	.segmented button + button { border-left: 1px solid var(--line); }
+	.segmented button i { color: var(--green); }
+	.segmented button:hover { background: var(--wash2); color: var(--green); }
+	.segmented button.is-selected { background: var(--green); color: #fff; }
+	.segmented button.is-selected i { color: #fff; }
+	.segmented button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+	@media (max-width: 900px) {
+		.template-layout { grid-template-columns: minmax(0, 1fr); }
+		.template-help { position: static; order: -1; }
+	}
 </style>

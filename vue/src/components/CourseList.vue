@@ -1,50 +1,37 @@
 <script setup>
-    import Card from './CourseItem.vue'
+    import CourseItem from './CourseItem.vue'
 
     defineProps({
         courses: {
             type: Array,
-            required: false
+            default: () => []
         },
-        title:
-        {
+        title: {
             type: String,
-            default: "Aktuelle forløb"
+            default: ''
         },
-        largeHeaderAdjust:
-        {
-            type: Boolean,
-            default: false
-        },
-        dark:
-        {
-            type: Boolean,
-            default: false
-        },
-        // color:
-        // {
-        //     type: String,
-        //     default: null
-        // }
+        emptyText: {
+            type: String,
+            default: 'Ingen forløb fundet.'
+        }
     })
+
+    const courseKey = (course) => course.ForløbID != null ? `f-${course.ForløbID}` : `t-${course.ForløbsskabelonID}`
 </script>
 
 <template>
-    <p :class="'indent-tiny bold uppercase p-header-adjust' + (largeHeaderAdjust ? '-large' : '')">{{ title ?? "Aktuelle forløb" }}</p>
-    <div class="card-list" v-if="courses && courses.length > 0">
-        <Card v-for="course in courses"
-            :id="course.ForløbID"
-            :tid="course.ForløbsskabelonID"
-            :title="course.userdq != '' ? course.userdq : course.usermail"
-            :name="course.name"
-            :startDate="new Date(course.startdate)"
-            :deadline="new Date(course.enddate)"
-            :duration="course.varighed"
-            :dark="dark"
-            :isPreparation="course.isPreparation" />
-    </div>
-    <div v-else>
-        <p class="indent-tiny faded">Ingen forløb fundet.</p>
-    </div>
-
+    <section class="course-list">
+        <div v-if="title" class="section-title">
+            <h3>{{ title }}</h3>
+            <span class="section-count">{{ courses.length }}</span>
+        </div>
+        <div v-if="courses.length" class="row-list">
+            <CourseItem v-for="course in courses" :key="courseKey(course)" :course="course" />
+        </div>
+        <div v-else class="empty-section">{{ emptyText }}</div>
+    </section>
 </template>
+
+<style scoped>
+    .course-list + .course-list { margin-top: 44px; }
+</style>

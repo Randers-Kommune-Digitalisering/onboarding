@@ -456,10 +456,15 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-    <p class="indent-tiny bold uppercase p-header-adjust">
-        {{ isEditing ? 'Rediger opgave' : isTemplate ? 'Opret opgaveskabelon' : 'Tilføj opgave' }}
-        {{ isTemplate ? '' : ' til ' + (forloeb?.name ?? 'forløbet') }}
-    </p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">{{ isTemplate ? 'OPGAVESKABELON' : 'OPGAVE' }}</span>
+            <h2>
+                {{ isEditing ? 'Redigér opgave' : isTemplate ? 'Opret opgaveskabelon' : 'Tilføj opgave' }}
+                {{ isTemplate ? '' : ' til ' + (forloeb?.name ?? 'forløbet') }}
+            </h2>
+        </div>
+    </div>
 
     <div
         v-if="focusedInput && !isAssistantSearchOpen"
@@ -689,7 +694,6 @@
         right: 2.7rem;
     }
     .input-button {
-        border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;

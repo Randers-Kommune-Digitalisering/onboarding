@@ -213,11 +213,17 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-	<p v-if="fileTooLarge" class="indent-tiny notification red">
-		<span class="bold">Fejl</span>: Filen overstiger den tilladte størrelse på 20MB. Vælg en anden fil.
-	</p>
+	<div v-if="fileTooLarge" class="alert alert-error" role="alert">
+		<i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+		<span>Filen overstiger den tilladte størrelse på 20MB. Vælg en anden fil.</span>
+	</div>
 
-	<p class="indent-tiny bold uppercase p-header-adjust">Tilføj ressource til opgaven</p>
+	<div class="content-intro">
+		<div>
+			<span class="eyebrow">RESSOURCE</span>
+			<h2>{{ isEditing ? 'Redigér ressource' : 'Tilføj ressource til opgaven' }}</h2>
+		</div>
+	</div>
 
 	<form @submit.prevent="submitForm">
 	<div class="formContainer">
@@ -278,7 +284,11 @@
 		gap: 1rem;
 	}
 	.inputContainer.inline .text {
-		margin-left: 0.6rem;
-		color: var(--color-text-faded)
+		margin-left: 2px;
+		color: var(--muted);
+		font-size: 13px;
+	}
+	.alert {
+		margin-bottom: 20px;
 	}
 </style>

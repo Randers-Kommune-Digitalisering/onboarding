@@ -204,7 +204,12 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-    <p class="indent-tiny bold uppercase p-header-adjust">Rediger forløb</p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">FORLØB</span>
+            <h2>Redigér forløb</h2>
+        </div>
+    </div>
 
     <form @submit.prevent="submitForm">
     <div class="formContainer">

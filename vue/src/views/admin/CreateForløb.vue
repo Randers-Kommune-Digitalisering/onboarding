@@ -229,7 +229,12 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-    <p class="indent-tiny bold uppercase p-header-adjust">{{ isPreparation ? 'Opret forløbsforberedelse' : 'Opret forløb' }}</p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">NYT FORLØB</span>
+            <h2>{{ isPreparation ? 'Opret forløbsforberedelse' : 'Opret forløb' }}</h2>
+        </div>
+    </div>
 
     <div
         v-if="focusedInput && !isUserMailSearchOpen && !isAdminSearchOpen"
