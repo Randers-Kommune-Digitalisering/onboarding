@@ -17,6 +17,10 @@
     --warning: #755521;
     --warning-wash: #f8f1df;
     --warning-dot: #bc9242;
+    --mark-active: var(--green);
+    --mark-preparation: #a96f1c;
+    --mark-completed: #87958f;
+    --mark-template: #3d6a8f;
     --site-shell-height: 104px;
     --shadow-pop: 0 12px 22px rgb(25 44 49 / 12%);
 }
@@ -335,6 +339,22 @@ h4 { font-size: 16px; line-height: 1.35; }
     flex: none;
     border-radius: 50%;
     background: var(--warning-dot);
+}
+
+/* Course marks (F01 / S01 squares) are coloured by course state */
+
+.course-mark {
+    background: var(--mark-active);
+    color: #fff;
+}
+.course-mark.is-preparation {
+    background: var(--mark-preparation);
+}
+.course-mark.is-completed {
+    background: var(--mark-completed);
+}
+.course-mark.is-template {
+    background: var(--mark-template);
 }
 
 .progress {

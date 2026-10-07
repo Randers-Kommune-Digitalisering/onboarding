@@ -47,6 +47,11 @@
     const relativeMode = computed(() => isTemplate.value || isPreparationCourse.value)
     const isCompleted = computed(() => !relativeMode.value && !!course.value?.enddate && new Date(course.value.enddate) <= new Date())
     const isOngoing = computed(() => !relativeMode.value && !!course.value?.startdate && new Date(course.value.startdate) <= new Date())
+    const markClass = computed(() => ({
+        'is-template': isTemplate.value,
+        'is-preparation': isPreparationCourse.value,
+        'is-completed': isCompleted.value,
+    }))
     const progress = computed(() => completionPercentage(tasks.value))
     const sections = computed(() => buildSections(tasks.value, { isPreparation: relativeMode.value, varighed: course.value?.varighed }))
     const usesPrivateEmail = computed(() => isAdmin.value && isOngoing.value && !!course.value?.usermail && !course.value.usermail.toLowerCase().includes('@randers.dk'))
@@ -312,7 +317,7 @@
                             <span v-else-if="startLabel" class="status-tag is-neutral"><span class="status-dot"></span>Starter {{ startLabel }}</span>
                         </div>
                     </div>
-                    <div class="header-mark" aria-hidden="true">{{ isTemplate ? 'S' : 'F' }}<span>{{ String(courseId).padStart(2, '0') }}</span></div>
+                    <div class="header-mark course-mark" :class="markClass" aria-hidden="true">{{ isTemplate ? 'S' : 'F' }}<span>{{ String(courseId).padStart(2, '0') }}</span></div>
                 </div>
             </div>
 
@@ -432,7 +437,7 @@
     .user-id { color: #49665b; font-weight: 700; }
     .meta-divider { height: 14px; border-left: 1px solid var(--line); }
     .course-duration { display: inline-flex; align-items: center; gap: 7px; }
-    .header-mark { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 60px; height: 60px; background: var(--green); color: #fff; font: 700 22px/1 var(--font); }
+    .header-mark { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 60px; height: 60px; font: 700 22px/1 var(--font); }
     .header-mark span { margin-top: 4px; font-size: 9px; letter-spacing: .08em; }
     .actions-bar { border-top: 1px solid var(--line); }
     .course-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding-block: 10px; }

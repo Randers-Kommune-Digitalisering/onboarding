@@ -239,6 +239,7 @@
     .workspace-label { flex: none; padding-top: 10px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .07em; }
     .workspace-tabs { display: flex; align-self: stretch; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
     .workspace-tabs::-webkit-scrollbar { display: none; }
+    .workspace-tabs:has(.workspace-empty) { padding-left: 12px; }
     .workspace-empty { align-self: center; padding-top: 8px; color: var(--muted); font-size: 11px; }
     .workspace-tab { display: flex; align-items: center; flex: none; align-self: end; max-width: 230px; height: 35px; border: 1px solid transparent; border-bottom: 0; border-radius: 3px 3px 0 0; color: #526b60; }
     .workspace-tab.is-active { border-color: #cbdcd0; background: #fff; color: var(--ink); }

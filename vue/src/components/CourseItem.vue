@@ -19,6 +19,11 @@
     const hasStarted = computed(() => !isTemplate.value && !props.course.isPreparation && !!props.course.startdate && new Date(props.course.startdate) <= new Date())
     const isCompleted = computed(() => !isTemplate.value && !props.course.isPreparation && !!props.course.enddate && new Date(props.course.enddate) < new Date())
     const progress = computed(() => completionPercentage(tasks.value || []))
+    const markClass = computed(() => ({
+        'is-template': isTemplate.value,
+        'is-preparation': !isTemplate.value && props.course.isPreparation === true,
+        'is-completed': isCompleted.value,
+    }))
 
     const formatDate = (value) => value ? new Date(value).toLocaleDateString('da-DK', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–'
     const countLabel = (count) => `${count} ${count === 1 ? 'opgave' : 'opgaver'}`
@@ -40,7 +45,7 @@
 
 <template>
     <router-link class="course-row" :class="{ 'is-complete': isCompleted }" :to="link">
-        <span class="row-mark" aria-hidden="true">{{ isTemplate ? 'S' : 'F' }}<span>{{ String(id).padStart(2, '0') }}</span></span>
+        <span class="row-mark course-mark" :class="markClass" aria-hidden="true">{{ isTemplate ? 'S' : 'F' }}<span>{{ String(id).padStart(2, '0') }}</span></span>
 
         <span class="row-main">
             <span class="row-title">{{ course.name || (isTemplate ? 'Skabelon uden titel' : 'Forløb uden titel') }}</span>
@@ -72,8 +77,7 @@
     .course-row:hover { background: var(--wash2); }
     .course-row:hover .row-arrow { opacity: 1; transform: translateX(2px); }
     .course-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
-    .course-row.is-complete .row-mark { background: #a9bcb1; }
-    .row-mark { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; background: var(--green); color: #fff; font: 700 15px/1 var(--font); }
+    .row-mark { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; font: 700 15px/1 var(--font); }
     .row-mark span { margin-top: 3px; font-size: 8px; letter-spacing: .08em; }
     .row-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
     .row-title { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
