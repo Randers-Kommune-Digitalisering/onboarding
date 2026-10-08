@@ -482,14 +482,17 @@ h4 { font-size: 16px; line-height: 1.35; }
 /* Forms */
 
 .flex {
+    --form-aside-width: 300px;
+    --form-aside-gap: 40px;
     position: relative;
-    display: flex;
-    flex-direction: column;
     width: 100%;
-    max-width: 640px;
 }
 
 .flex > .max-width {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-flow: row dense;
+    align-items: start;
     width: 100%;
 }
 
@@ -820,20 +823,30 @@ textarea:not(:placeholder-shown) + .floating-label {
     text-transform: uppercase;
 }
 
-@media (min-width: 1040px) {
-    .float-right {
-        top: 0;
-        left: calc(100% + 32px);
-        width: 260px;
-        margin-top: 0;
+@media (min-width: 760px) {
+    /* The right column is always reserved so the form doesn't shift when the helper appears */
+    .flex > .max-width {
+        grid-template-columns: minmax(0, 1fr) var(--form-aside-width);
+        column-gap: var(--form-aside-gap);
     }
-    .float-right.helper-text {
-        position: absolute !important;
-        top: 0;
+    .flex > .max-width > * {
+        grid-column: 1 / -1;
+    }
+    .flex > .max-width > form {
+        grid-column: 1;
+    }
+    .flex > .max-width > .float-right.helper-text {
+        position: sticky;
+        top: calc(var(--site-shell-height) + 24px);
+        grid-column: 2;
+        width: auto;
         margin: 0;
     }
     .inputContainer .float-right {
-        left: calc(100% + 32px);
+        top: 0;
+        left: calc(100% + var(--form-aside-gap));
+        width: var(--form-aside-width);
+        margin-top: 0;
     }
     .float-header {
         position: static;

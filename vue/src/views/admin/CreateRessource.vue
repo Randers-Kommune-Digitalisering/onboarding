@@ -22,6 +22,13 @@
         url: ""
     })
 
+	const focusedInput = ref(null)
+	const inputFieldDescriptions = {
+		name: { text: "Ressourcens navn", tooltip: "<span>Giv ressourcen et kort, beskrivende navn.</span><span>Navnet vises på opgaven, så medarbejderen kan se, hvad linket eller filen indeholder.</span>" },
+		url: { text: "Link til ressource", tooltip: "<span>Indsæt adressen på den webside, ressourcen findes på.</span><span>Hvis adressen ikke starter med http:// eller https://, tilføjes https:// automatisk.</span><span>Linket åbner i en ny fane.</span>" },
+		file: { text: "Upload fil", tooltip: "<span>Vælg en fil, som medarbejderen skal kunne hente fra opgaven.</span><span>Tilladte filtyper er PDF, Word, Excel, PowerPoint og tekstfiler. Filen må højst fylde 20MB.</span>" }
+	}
+
 	const addHttp = () => {
 		if (!inputFields.value.url)
 			return inputFields.value.url
@@ -225,8 +232,18 @@
 		</div>
 	</div>
 
+	<div
+		v-if="focusedInput"
+		class="float-right helper-text"
+		@mousedown.prevent
+		@click.prevent
+	>
+		<div class="header-small">{{ focusedInput.text }}</div>
+		<div v-html="focusedInput.tooltip"></div>
+	</div>
+
 	<form @submit.prevent="submitForm">
-	<div class="formContainer">
+	<div class="formContainer float-right-gutter">
 
 		<div class="inputContainer inline">
 			<span class="text">Ressourcetype:</span>
@@ -237,19 +254,25 @@
 		</div>
 
 		<div class="inputContainer">
-			<input type="text" id="title" name="title" placeholder=" " v-model="inputFields.name" required>
+			<input type="text" id="title" name="title" placeholder=" " v-model="inputFields.name" required
+				@focus="focusedInput = inputFieldDescriptions.name"
+				@blur="focusedInput = null">
 			<label for="title" class="floating-label">Ressourcens navn</label>
 		</div>
 
 		<div class="inputContainer" v-if="resourceType === 'link'">
-			<input type="text" id="url" name="url" placeholder=" " v-model="inputFields.url" :class="{'invalid': !isUrlValid}" @change="addHttp()" required>
+			<input type="text" id="url" name="url" placeholder=" " v-model="inputFields.url" :class="{'invalid': !isUrlValid}" @change="addHttp()" required
+				@focus="focusedInput = inputFieldDescriptions.url"
+				@blur="focusedInput = null">
 			<label for="url" class="floating-label">Link til ressource</label>
 		</div>
 
 		<div class="inputContainer" v-else-if="!isEditing">
 			<input type="file" id="file" name="file" placeholder=" "
 				accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-				@change="onFileSelected" required>
+				@change="onFileSelected" required
+				@focus="focusedInput = inputFieldDescriptions.file"
+				@blur="focusedInput = null">
 			<label for="file" class="floating-label">Upload fil</label>
 		</div>
 

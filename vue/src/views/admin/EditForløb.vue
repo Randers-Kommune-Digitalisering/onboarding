@@ -23,7 +23,14 @@
         userdq: ""
     })
 
-    /* User mail search */
+    const focusedInput = ref(null)
+    const inputFieldDescriptions = {
+        usermail: { text: "Medarbejder mailadresse", tooltip: "<span>Mailadressen på den medarbejder, som forløbet er til.</span><span>Du kan vælge en medarbejder fra listen, når der vises forslag. Husk at opdatere til medarbejderens Randers-mail, hvis forløbet er oprettet med en privat mailadresse.</span>" },
+        name: { text: "Medarbejder navn", tooltip: "<span>Medarbejderens navn, som vises i forløbet og i velkomstmailen.</span><span>Hvis du vælger mail fra listen, udfyldes navnet automatisk.</span>" },
+        admin: { text: "Ansvarlig leder", tooltip: "<span>Den leder, der er ansvarlig for forløbet.</span><span>Forløbet vises i den valgte leders overblik. Lås feltet op for at vælge en anden leder.</span>" },
+        startdate: { text: "Startdato", tooltip: "<span>Den dag, hvor forløbet starter.</span><span><b>OBS</b>: Opgavernes datoer flyttes ikke automatisk, når du ændrer forløbets startdato.</span>" },
+        enddate: { text: "Slutdato", tooltip: "<span>Den dag, hvor forløbet afsluttes.</span><span>Forløbet flyttes til afsluttede forløb, når slutdatoen er passeret. Sæt en senere slutdato for at genoptage et afsluttet forløb.</span>" }
+    }
     const isUserMailValid = ref(true)
     const isRandersMail = (email) => {
         return email.toLowerCase().endsWith('@randers.dk')
@@ -211,11 +218,23 @@
         </div>
     </div>
 
+    <div
+        v-if="focusedInput && !isUserMailSearchOpen && !isAdminSearchOpen"
+        class="float-right helper-text"
+        @mousedown.prevent
+        @click.prevent
+    >
+        <div class="header-small">{{ focusedInput.text }}</div>
+        <div v-html="focusedInput.tooltip"></div>
+    </div>
+
     <form @submit.prevent="submitForm">
-    <div class="formContainer">
+    <div class="formContainer float-right-gutter">
 
         <div class="inputContainer">
-            <input type="text" id="mail" name="mail" placeholder=" " @input="searchUserMails(inputFields.usermail)" v-model="inputFields.usermail" :class="{'invalid': !isUserMailValid}" required>
+            <input type="text" id="mail" name="mail" placeholder=" " @input="searchUserMails(inputFields.usermail)" v-model="inputFields.usermail" :class="{'invalid': !isUserMailValid}" required
+                @focus="focusedInput = inputFieldDescriptions.usermail"
+                @blur="focusedInput = null">
             <label for="mail" class="floating-label">Medarbejder mailadresse</label>
 
             <div class="itemSelector float-right" v-if="isUserMailSearchOpen">
@@ -226,12 +245,16 @@
         </div>
 
         <div :class="['inputContainer', { 'hideOnMobile': isUserMailSearchOpen || isAdminSearchOpen  }]">
-            <input type="text" id="name" name="name" placeholder=" " v-model="inputFields.name" required>
+            <input type="text" id="name" name="name" placeholder=" " v-model="inputFields.name" required
+                @focus="focusedInput = inputFieldDescriptions.name"
+                @blur="focusedInput = null">
             <label for="name" class="floating-label">Medarbejder navn</label>
         </div>
 
         <div :class="['inputContainer', { 'hideOnMobile': isUserMailSearchOpen }]">
-            <input type="text" id="admin" name="admin" placeholder=" " @input="searchAdmins(inputFields.admin)" v-model="inputFields.admin" class="locked" required :disabled="isAdminLocked">
+            <input type="text" id="admin" name="admin" placeholder=" " @input="searchAdmins(inputFields.admin)" v-model="inputFields.admin" class="locked" required :disabled="isAdminLocked"
+                @focus="focusedInput = inputFieldDescriptions.admin"
+                @blur="focusedInput = null">
             <label for="admin" class="floating-label">Ansvarlig leder</label>
             <div class="icon" @click="toggleadminSearch()"><i :class="'fa-solid fa-lock' + (isAdminLocked ? '' : '-open')"></i></div>
             
@@ -243,11 +266,15 @@
         </div>
         <div v-if="!isPreparation" class="inputContainer" :class="{ 'hideOnMobile': isUserMailSearchOpen || isAdminSearchOpen }">
             <div class="flex-item">
-                <input type="date" id="startdate" name="startdate" v-model="inputFields.startdate" required>
+                <input type="date" id="startdate" name="startdate" v-model="inputFields.startdate" required
+                    @focus="focusedInput = inputFieldDescriptions.startdate"
+                    @blur="focusedInput = null">
                 <label for="startdate" class="floating-label">Startdato</label>
             </div>
             <div class="flex-item">
-                <input type="date" id="enddate" name="enddate" v-model="inputFields.enddate" required>
+                <input type="date" id="enddate" name="enddate" v-model="inputFields.enddate" required
+                    @focus="focusedInput = inputFieldDescriptions.enddate"
+                    @blur="focusedInput = null">
                 <label for="enddate" class="floating-label">Slutdato</label>
             </div>
         </div>
