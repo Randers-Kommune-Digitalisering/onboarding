@@ -296,14 +296,15 @@ def get_forloeb_with_opgaver():
         session.close()
 
 
-def get_forloeb_by_email(mail):
+def get_forloeb_by_current_user():
     session = db_client.get_session()
     try:
-        mail = get_current_user_email() or mail
+        mail = get_current_user_email()
         if not mail:
             return jsonify(None), 200
 
-        forloeb = session.query(Forløb).filter(Forløb.usermail.ilike(mail.lower())).first()
+        logger.info(f"Fetching forløb for current user with email: {mail}")
+        forloeb = session.query(Forløb).filter(Forløb.usermail.ilike(mail.lower()), Forløb.isPreparation.is_(False)).first()
         if not forloeb:
             return jsonify(None), 200
 

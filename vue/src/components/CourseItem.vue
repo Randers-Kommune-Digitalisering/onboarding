@@ -63,7 +63,7 @@
             <span v-if="(isTemplate || course.isPreparation) && tasks" class="row-count">{{ countLabel(tasks.length) }}</span>
             <span v-if="hasStarted && tasks" class="progress" :title="`${progress}% gennemført`">
                 <span class="progress-track"><span class="progress-fill" :style="{ width: `${progress}%` }"></span></span>
-                {{ progress }}%
+                <span class="progress-value">{{ progress }}%</span>
             </span>
         </span>
 
@@ -83,8 +83,9 @@
     .row-title { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .row-sub { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .row-meta { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 11px; }
-    .row-dates { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .row-dates { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .row-count { white-space: nowrap; }
+    .progress-value { display: inline-block; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
     .row-arrow { flex: none; color: var(--green); font-size: 11px; opacity: .35; transition: opacity 150ms ease, transform 150ms ease; }
 
     @media (max-width: 620px) {

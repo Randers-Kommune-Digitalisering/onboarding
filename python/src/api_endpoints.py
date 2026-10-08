@@ -25,11 +25,11 @@ from controllers.forloebsskabelon_controller import (
 from controllers.forloeb_controller import (
     create_forloeb,
     create_forloeb_preparation,
+    get_forloeb_by_current_user,
     start_preparation_forloeb,
     get_forloeb,
     get_all_forloeb,
     get_forloeb_with_opgaver,
-    get_forloeb_by_email,
     get_forloeb_by_admin,
     complete_forloeb,
     update_forloeb,
@@ -110,8 +110,8 @@ def external_ressource_download_endpoint(ressource_id):
 
 @api_endpoints.route('/mitforloeb', methods=['GET'])
 def get_forloeb_by_email_endpoint():
-    mail = request.headers.get('usermail')
-    return get_forloeb_by_email(mail)
+    # mail = request.headers.get('usermail')
+    return get_forloeb_by_current_user()
 
 
 @api_endpoints.route('/opgave', methods=['POST'])
