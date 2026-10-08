@@ -2,8 +2,7 @@
 	import { onMounted, ref } from 'vue'
 	import { useRouter } from 'vue-router'
 
-	import { getUserInfo } from '@/services/keycloakService.js'
-	import { getForloebByEmail } from '@/services/forløbService.js'
+	import { getForloebByLoggedInUser } from '@/services/forløbService.js'
 	import PageHeader from '@/components/PageHeader.vue'
 
 	const router = useRouter()
@@ -12,8 +11,7 @@
 	// The employee's own course opens as a regular course tab
 	onMounted(async () => {
 		try {
-			const userInfo = await getUserInfo()
-			const response = await getForloebByEmail({ headers: { usermail: userInfo.email } })
+			const response = await getForloebByLoggedInUser()
 			const courseId = response?.data?.ForløbID
 			if (courseId == null) {
 				status.value = 'missing'

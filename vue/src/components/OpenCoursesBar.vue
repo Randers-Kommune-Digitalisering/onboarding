@@ -2,7 +2,7 @@
     import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
 
-    import { getForloebByAdmin, getForloebByEmail } from '@/services/forløbService.js'
+    import { getForloebByAdmin, getForloebByLoggedInUser } from '@/services/forløbService.js'
     import { getForloebsskabeloner } from '@/services/forløbsskabelonService.js'
     import { getOpgaverByAnsvarligEmail } from '@/services/opgaveService.js'
     import { openCourses, MAX_OPEN_COURSES, courseLocation, isCourseRoute, isCourseSubRoute } from '@/stores/openCourses.js'
@@ -62,7 +62,7 @@
                     .sort(byName)
             } else {
                 const [ownResponse, taskResponse] = await Promise.all([
-                    getForloebByEmail({ headers }).catch(() => null),
+                    getForloebByLoggedInUser().catch(() => null),
                     getOpgaverByAnsvarligEmail({ headers }),
                 ])
                 const entries = new Map()
