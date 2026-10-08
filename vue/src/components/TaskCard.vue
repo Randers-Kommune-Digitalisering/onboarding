@@ -277,7 +277,7 @@
 </script>
 
 <template>
-    <article ref="cardRef" class="course-task" :class="{ 'is-complete': task.result, 'is-hidden': task.hidden }">
+    <article ref="cardRef" class="course-task" :class="{ 'is-complete': task.result, 'is-hidden': task.hidden, 'is-overdue': isOverdue }">
         <div class="task-topline">
             <span class="task-id">{{ isTaskTemplate ? 'OPGAVESKABELON' : 'OPGAVE' }} {{ String(taskId).padStart(2, '0') }}</span>
             <span v-if="timing" class="task-timing" :class="{ 'is-done': task.result && !relativeTiming, 'is-overdue': isOverdue }">{{ timing }}</span>
@@ -373,6 +373,8 @@
     .course-task + .course-task { border-top: 1px solid var(--line); }
     .course-task.is-complete { background: var(--wash2); }
     .course-task.is-complete .task-title { color: var(--muted); }
+    .course-task.is-overdue { box-shadow: inset 0 0 0 100vmax rgba(255, 64, 64, 0.04); }
+    .course-task.is-hidden { background-size: 10px 10px; background-image: repeating-linear-gradient(45deg, #f4f4e8 0, #f4f4e8 1px, transparent 0, transparent 50%); }
     .task-topline { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
     .task-id { color: var(--green); }
     .task-timing { font-weight: 600; }
