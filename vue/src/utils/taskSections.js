@@ -86,6 +86,17 @@ export function sortTasks(tasks, { isPreparation }) {
     return [...tasks].sort(isPreparation ? byRelativeDay : byDate('slutdato'))
 }
 
+const taskKey = (task) => task.OpgaveID ?? task.OpgaveskabelonID
+
+// Tasks without a start date are numbered last; ties keep creation order
+const byStart = (a, b) => (toDay(a.startdato) ?? Infinity) - (toDay(b.startdato) ?? Infinity)
+    || (a.relativ_startdag ?? 0) - (b.relativ_startdag ?? 0)
+    || (taskKey(a) ?? 0) - (taskKey(b) ?? 0)
+
+export function numberTasksByStart(tasks) {
+    return new Map([...tasks].sort(byStart).map((task, index) => [taskKey(task), index + 1]))
+}
+
 export function groupTasks(tasks) {
     const groups = new Map()
     for (const task of tasks) {

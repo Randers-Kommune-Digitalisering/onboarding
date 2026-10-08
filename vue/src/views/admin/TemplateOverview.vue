@@ -5,6 +5,7 @@
 	import { getUserInfo } from '@/services/keycloakService.js'
 	import { getForloebsskabeloner } from '@/services/forløbsskabelonService.js'
 	import { getOpgaveskabeloner } from '@/services/opgaveskabelonService.js'
+	import { numberTasksByStart } from '@/utils/taskSections.js'
 
 	import CourseList from '@/components/CourseList.vue'
 	import PageHeader from '@/components/PageHeader.vue'
@@ -22,6 +23,7 @@
 	const isLoading = ref(true)
 	const forloebTemplates = ref([])
 	const opgaveTemplates = ref([])
+	const templateNumbers = computed(() => numberTasksByStart(opgaveTemplates.value))
 	const selectedType = ref(route.query.view == '1' ? TemplateType.Opgaveskabelon : TemplateType.Forloebsskabelon)
 
 	const scrollToItem = computed(() => {
@@ -83,10 +85,10 @@
 				<template v-else>
 					<div v-if="opgaveTemplates.length" class="task-group is-ungrouped">
 						<div class="task-list">
-							<TaskCard v-for="(task, index) in opgaveTemplates"
+							<TaskCard v-for="task in opgaveTemplates"
 									  :key="task.OpgaveskabelonID"
 									  :task="task"
-									  :index="index + 1"
+									  :index="templateNumbers.get(task.OpgaveskabelonID)"
 									  :userInfo="userInfo"
 									  :highlight="scrollToItem === task.OpgaveskabelonID"
 									  @changed="fetchTemplates" />

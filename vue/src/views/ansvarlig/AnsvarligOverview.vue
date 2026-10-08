@@ -4,7 +4,7 @@
 
 	import { getUserInfo } from '@/services/keycloakService.js'
 	import { getOpgaverByAnsvarligEmail } from '@/services/opgaveService.js'
-	import { hasNoDates, sortTasks } from '@/utils/taskSections.js'
+	import { hasNoDates, numberTasksByStart, sortTasks } from '@/utils/taskSections.js'
 
 	import PageHeader from '@/components/PageHeader.vue'
 	import TaskCard from '@/components/TaskCard.vue'
@@ -47,7 +47,7 @@
 			groups.get(key).items.push(task)
 		}
 		return [...groups.values()]
-			.map(group => ({ ...group, items: orderTasks(group.items), open: group.items.filter(task => !task.result).length }))
+			.map(group => ({ ...group, items: orderTasks(group.items), numbers: numberTasksByStart(group.items), open: group.items.filter(task => !task.result).length }))
 			.sort((a, b) => a.name.localeCompare(b.name, 'da'))
 	})
 
@@ -100,10 +100,10 @@
 						<span class="group-count">{{ group.open }} åbne · {{ group.items.length }} i alt</span>
 					</div>
 					<div class="task-list">
-						<TaskCard v-for="(task, index) in group.items"
+						<TaskCard v-for="task in group.items"
 								  :key="task.OpgaveID"
 								  :task="task"
-								  :index="index + 1"
+								  :index="group.numbers.get(task.OpgaveID)"
 								  :userInfo="userInfo"
 								  :courseId="group.courseId"
 								  :courseIsTemplate="group.isTemplate"

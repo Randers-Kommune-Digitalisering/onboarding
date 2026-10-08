@@ -2,6 +2,7 @@
     import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
     import TaskCard from '@/components/TaskCard.vue'
+    import { numberTasksByStart } from '@/utils/taskSections.js'
 
     const props = defineProps({
         sections: {
@@ -65,10 +66,7 @@
     const countLabel = (count) => `${count} ${count === 1 ? 'opgave' : 'opgaver'}`
     const taskKey = (task) => task.OpgaveID ?? task.OpgaveskabelonID
 
-    // Numbering follows display order across all sections of the course
-    const taskNumbers = computed(() => new Map(props.sections
-        .flatMap(section => section.groups.flatMap(group => group.items))
-        .map((task, index) => [taskKey(task), index + 1])))
+    const taskNumbers = computed(() => numberTasksByStart(props.sections.flatMap(section => section.tasks)))
 
     function updateActiveSection() {
         const threshold = Math.min(180, window.innerHeight * 0.35)
