@@ -100,9 +100,10 @@
 						<span class="group-count">{{ group.open }} åbne · {{ group.items.length }} i alt</span>
 					</div>
 					<div class="task-list">
-						<TaskCard v-for="task in group.items"
+						<TaskCard v-for="(task, index) in group.items"
 								  :key="task.OpgaveID"
 								  :task="task"
+								  :index="index + 1"
 								  :userInfo="userInfo"
 								  :courseId="group.courseId"
 								  :courseIsTemplate="group.isTemplate"

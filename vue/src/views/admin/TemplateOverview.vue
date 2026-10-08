@@ -83,9 +83,10 @@
 				<template v-else>
 					<div v-if="opgaveTemplates.length" class="task-group is-ungrouped">
 						<div class="task-list">
-							<TaskCard v-for="task in opgaveTemplates"
+							<TaskCard v-for="(task, index) in opgaveTemplates"
 									  :key="task.OpgaveskabelonID"
 									  :task="task"
+									  :index="index + 1"
 									  :userInfo="userInfo"
 									  :highlight="scrollToItem === task.OpgaveskabelonID"
 									  @changed="fetchTemplates" />

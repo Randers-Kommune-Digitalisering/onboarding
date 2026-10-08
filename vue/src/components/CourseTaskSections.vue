@@ -1,5 +1,5 @@
 <script setup>
-    import { onBeforeUnmount, ref, watch } from 'vue'
+    import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
     import TaskCard from '@/components/TaskCard.vue'
 
@@ -64,6 +64,11 @@
     const sectionElementId = (id) => `${props.idPrefix}-${id}`
     const countLabel = (count) => `${count} ${count === 1 ? 'opgave' : 'opgaver'}`
     const taskKey = (task) => task.OpgaveID ?? task.OpgaveskabelonID
+
+    // Numbering follows display order across all sections of the course
+    const taskNumbers = computed(() => new Map(props.sections
+        .flatMap(section => section.groups.flatMap(group => group.items))
+        .map((task, index) => [taskKey(task), index + 1])))
 
     function updateActiveSection() {
         const threshold = Math.min(180, window.innerHeight * 0.35)
@@ -159,6 +164,7 @@
                             <TaskCard v-for="task in group.items"
                                       :key="taskKey(task)"
                                       :task="task"
+                                      :index="taskNumbers.get(taskKey(task))"
                                       :userInfo="userInfo"
                                       :courseId="courseId"
                                       :courseIsTemplate="courseIsTemplate"

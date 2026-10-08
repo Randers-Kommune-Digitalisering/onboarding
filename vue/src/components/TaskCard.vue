@@ -49,6 +49,11 @@
         highlight: {
             type: Boolean,
             default: false
+        },
+        // 1-based position of the task in the parent's task list
+        index: {
+            type: Number,
+            default: null
         }
     })
 
@@ -279,7 +284,7 @@
 <template>
     <article ref="cardRef" class="course-task" :class="{ 'is-complete': task.result, 'is-hidden': task.hidden, 'is-overdue': isOverdue }">
         <div class="task-topline">
-            <span class="task-id">{{ isTaskTemplate ? 'OPGAVESKABELON' : 'OPGAVE' }} {{ String(taskId).padStart(2, '0') }}</span>
+            <span class="task-id">{{ isTaskTemplate ? 'OPGAVESKABELON' : 'OPGAVE' }} <template v-if="index != null">{{ String(index).padStart(2, '0') }}</template></span>
             <span v-if="timing" class="task-timing" :class="{ 'is-done': task.result && !relativeTiming, 'is-overdue': isOverdue }">{{ timing }}</span>
         </div>
 
