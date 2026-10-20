@@ -46,9 +46,16 @@ def sent(monkeypatch):
     return calls
 
 
-def _seed_expired_task(db) -> int:
+_ACTIVE = object()
+
+
+def _seed_expired_task(db, enddate=_ACTIVE) -> int:
+    if enddate is _ACTIVE:
+        enddate = datetime.now() + timedelta(days=30)
     session = db.get_session()
-    forloeb = Forløb(name="Test Person", admin="admin@example.com", usermail=USER_EMAIL, userdq="DQ1")
+    forloeb = Forløb(
+        name="Test Person", admin="admin@example.com", usermail=USER_EMAIL, userdq="DQ1", enddate=enddate
+    )
     session.add(forloeb)
     session.flush()
     opgave = Opgave(
@@ -216,3 +223,39 @@ def test_sent_reminders_are_recorded_even_if_run_fails(db, monkeypatch):
     rows = session.query(Mail).filter_by(OpgaveID=opgave_id).all()
     assert [(r.recipient, r.description) for r in rows] == [(USER_EMAIL, MAIL_DESC_EXPIRED_TASK_USER)]
     session.close()
+
+
+def _today_start() -> datetime:
+    return datetime.combine(datetime.now().date(), datetime.min.time())
+
+
+@pytest.mark.parametrize(
+    "enddate",
+    [
+        _today_start(),  # ends today -> still active
+        _today_start() + timedelta(days=5),
+    ],
+)
+def test_tasks_on_active_courses_are_notified(db, sent, enddate):
+    _seed_expired_task(db, enddate=enddate)
+
+    _run()
+
+    assert _recipients(sent) == [ANSVARLIG_EMAIL, USER_EMAIL]
+
+
+@pytest.mark.parametrize(
+    "enddate",
+    [
+        None,  # under preparation, no end date yet
+        _today_start() - timedelta(minutes=1),  # ended yesterday
+    ],
+)
+def test_tasks_on_inactive_courses_are_not_notified(db, sent, enddate):
+    _seed_expired_task(db, enddate=enddate)
+
+    data, status = _run()
+
+    assert status == 200
+    assert data["message"] == "No expired tasks to notify"
+    assert sent == []

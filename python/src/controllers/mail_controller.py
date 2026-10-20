@@ -765,6 +765,9 @@ def _commit_expired_reminder_rows(session, rows: List[Mail]) -> bool:
 def notify_expired_tasks_aggregated() -> tuple[Response, int]:
     """Cron: Send consolidated notifications for expired tasks (repeat reminders).
 
+    Only tasks on active courses are included, i.e. courses whose end date is today or later.
+    Courses without an end date (under preparation) are skipped.
+
     A task is only included for a given recipient if that recipient has never received an
     expired-task reminder for it, or the latest one was sent at least
     EXPIRED_TASK_REMINDER_INTERVAL ago.
@@ -774,10 +777,17 @@ def notify_expired_tasks_aggregated() -> tuple[Response, int]:
     pending_rows: List[Mail] = []
     try:
         now = datetime.now()
+        today_start = datetime.combine(now.date(), datetime.min.time())
         opgaver = (
             session.query(Opgave)
+            .join(Opgave.forløb)
             .options(selectinload(Opgave.forløb))
-            .filter(Opgave.slutdato <= now, Opgave.result.is_(False), Opgave.ForløbID.is_not(None))
+            .filter(
+                Opgave.slutdato <= now,
+                Opgave.result.is_(False),
+                # Only active courses (end date today or later); courses without an end date are skipped.
+                Forløb.enddate >= today_start,
+            )
             .all()
         )
 
