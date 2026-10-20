@@ -5,10 +5,7 @@ from utils.db_connection import get_db_client
 from utils.config import MAIL_DESC_NEW_TASK_ANSVARLIG
 from utils.access_control import get_current_user_email, is_current_user_admin, user_can_access_forloeb
 from controllers.mail_controller import plan_mail, create_mail_ansvarlig
-import logging
 from sqlalchemy.orm import selectinload
-
-logger = logging.getLogger(__name__)
 
 db_client = get_db_client()
 
@@ -303,7 +300,6 @@ def get_forloeb_by_current_user():
         if not mail:
             return jsonify(None), 200
 
-        logger.info(f"Fetching forløb for current user with email: {mail}")
         forloeb = session.query(Forløb).filter(Forløb.usermail.ilike(mail.lower()), Forløb.isPreparation.is_(False)).first()
         if not forloeb:
             return jsonify(None), 200

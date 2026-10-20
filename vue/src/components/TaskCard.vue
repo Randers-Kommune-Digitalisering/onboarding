@@ -76,7 +76,7 @@
 
     const canManage = computed(() => isTaskTemplate.value || isAdmin.value)
     const canEditResources = computed(() => canManage.value || isAnsvarlig.value)
-    const canComplete = computed(() => !relativeTiming.value
+    const canComplete = computed(() => !props.external && !relativeTiming.value
         && (isAdmin.value || isAnsvarlig.value || (isEmployee.value && !props.task.ansvarligEmail)))
 
     const timing = computed(() => isTaskTemplate.value ? null : getTaskTiming(props.task, { isPreparation: relativeTiming.value }))

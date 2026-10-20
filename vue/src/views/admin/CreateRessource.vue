@@ -3,9 +3,12 @@
     import { useRoute, useRouter } from 'vue-router'
 	
 	import { createRessource, createRessourceFile, getRessourceById, updateRessource, deleteRessource } from '@/services/ressourceService.js'
+	import { openCourses } from '@/stores/openCourses.js'
 
     const route = useRoute()
 	const router = useRouter()
+	// Snapshot of this editor's own tab route; the global route may switch to another tab while saving
+	const originRoute = { path: route.path, fullPath: route.fullPath, query: { ...route.query } }
 
 	const id = parseInt(route.query.id ?? route.query.tid, 10)
     const isTemplate = route.query.id == null
@@ -153,13 +156,14 @@
 
 	const returnToPrevious = () =>
 	{
-		if (router.currentRoute.value.path.startsWith('/forloeb-overview/')) {
-			const parentForloebId = router.currentRoute.value.query.forloebTid || router.currentRoute.value.query.forloebId
-			const isTemplateContext = router.currentRoute.value.query.forloebTid != null
-				|| router.currentRoute.value.query.template === 'true'
-				|| router.currentRoute.value.query.tid != null
+		const originQuery = originRoute.query
+		if (originRoute.path.startsWith('/forloeb-overview/')) {
+			const parentForloebId = originQuery.forloebTid || originQuery.forloebId
+			const isTemplateContext = originQuery.forloebTid != null
+				|| originQuery.template === 'true'
+				|| originQuery.tid != null
 			const nextQuery = {
-				...router.currentRoute.value.query,
+				...originQuery,
 				item: opgaveId.value,
 				refreshTasks: Date.now().toString(),
 			}
@@ -174,7 +178,7 @@
 			delete nextQuery.edit
 			delete nextQuery.forloebId
 			delete nextQuery.forloebTid
-			router.replace({ path: '/forloeb-overview', query: nextQuery })
+			openCourses.replaceFromTab(router, originRoute, { path: '/forloeb-overview', query: nextQuery })
 			return
 		}
 
@@ -184,7 +188,7 @@
 			router.replace({
 				path: '/forloeb-overview',
 				query: {
-					id: router.currentRoute.value.query.forloebId ?? router.currentRoute.value.query.forloebTid,
+					id: originQuery.forloebId ?? originQuery.forloebTid,
 					item: opgaveId.value,
 					refreshTasks: Date.now().toString(),
 				},
@@ -197,7 +201,7 @@
 			router.replace({
 				path: '/forloeb-overview',
 				query: {
-					id: router.currentRoute.value.query.forloebId ?? router.currentRoute.value.query.forloebTid,
+					id: originQuery.forloebId ?? originQuery.forloebTid,
 					item: opgaveId.value,
 					refreshTasks: Date.now().toString(),
 				},

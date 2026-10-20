@@ -7,9 +7,12 @@
     import { createOpgaveskabelon, getOpgaveskabelonById, updateOpgaveskabelon, getOpgaveskabeloner } from '@/services/opgaveskabelonService.js'
     import { getForloebById } from '@/services/forløbService.js'
     import { getForloebsskabeloner } from '@/services/forløbsskabelonService.js'
+    import { openCourses } from '@/stores/openCourses.js'
 
     const route = useRoute()
     const router = useRouter()
+    // Snapshot of this editor's own tab route; the global route may switch to another tab while saving
+    const originRoute = { path: route.path, fullPath: route.fullPath, query: { ...route.query } }
 
     const forloeb = ref(null)
     const forloeb_id = ref(parseInt(route.query.id ?? route.query.tid, 10))
@@ -391,11 +394,11 @@
 
     const returnToPrevious = (id = null) =>
 	{
-        if (router.currentRoute.value.path.startsWith('/forloeb-overview/')) {
-            const parentForloebId = route.query.forloebTid || route.query.forloebId || forloeb_id.value
-            const returnToTemplateOverview = route.query.forloebTid != null || route.query.tid != null
+        if (originRoute.path.startsWith('/forloeb-overview/')) {
+            const parentForloebId = originRoute.query.forloebTid || originRoute.query.forloebId || forloeb_id.value
+            const returnToTemplateOverview = originRoute.query.forloebTid != null || originRoute.query.tid != null
             const nextQuery = {
-                ...router.currentRoute.value.query,
+                ...originRoute.query,
                 item: id ?? opgaveId,
                 refreshTasks: Date.now().toString(),
             }
@@ -413,7 +416,7 @@
             delete nextQuery.edit
             delete nextQuery.forloebId
             delete nextQuery.forloebTid
-            router.replace({ path: '/forloeb-overview', query: nextQuery })
+            openCourses.replaceFromTab(router, originRoute, { path: '/forloeb-overview', query: nextQuery })
             return
         }
 

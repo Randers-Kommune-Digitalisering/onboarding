@@ -115,6 +115,25 @@ const dismissNotice = () => {
     state.notice = null
 }
 
+// Async callbacks (e.g. after a save) must only move the tab they started in. `origin` is a snapshot
+// of the route that tab showed when the work began; the global URL may belong to another tab by now.
+const replaceFromTab = (router, origin, location) => {
+    if (isExternalRoute(origin))
+        return router.replace(location)
+
+    const courseRef = resolveCourseRef(origin.query)
+    const tab = courseRef ? find(courseRef.key) : null
+    // Tab closed, or it has since navigated away from the view that started the work
+    if (!tab || tab.route.fullPath !== origin.fullPath)
+        return Promise.resolve()
+
+    if (state.activeKey === tab.key && isCourseRoute(router.currentRoute.value))
+        return router.replace(location)
+
+    tab.route = markRaw(router.resolve(location))
+    return Promise.resolve()
+}
+
 const restore = (router) => {
     let keys = []
     try {
@@ -147,5 +166,6 @@ export const openCourses = {
     setTitle,
     showNotice,
     dismissNotice,
+    replaceFromTab,
     restore,
 }

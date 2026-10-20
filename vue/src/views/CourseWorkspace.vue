@@ -198,7 +198,7 @@
         if (!isExternal.value && courseRef.value) {
             openCourses.setTitle(courseRef.value.key, course.value?.name || null)
             // Tabs restored from an earlier session may point to courses that are gone or no longer accessible
-            if (!course.value && !isActive.value)
+            if (!course.value && !isActive.value && !loadFailed.value)
                 openCourses.remove(courseRef.value.key)
         }
     }
