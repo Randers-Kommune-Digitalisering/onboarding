@@ -114,7 +114,7 @@ def create_app():
             if request.path == '/api/userinfo':
                 return None
 
-            if request.path not in ['/login', '/auth', '/healthz', '/metrics', '/api/cron/notify-expired-tasks', '/api/cron/send-planned-mails']:
+            if request.path not in ['/login', '/auth', '/healthz', '/metrics', '/api/cron/notify-expired-tasks', '/api/cron/notify-upcoming-tasks', '/api/cron/send-planned-mails']:
                 return redirect(url_for("login"))
 
         @app.route("/login")
