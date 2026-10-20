@@ -50,7 +50,7 @@
         gruppe: { text: "Opgavegruppe", tooltip: "<span>Vælg en opgavegruppe for at gruppere denne opgave med andre opgaver i forløbet.</span><span>Opgaver kan sorteres efter gruppe i forløbets opgaveoverblik, hvilket kan hjælpe med at skabe overblik i forløb med mange opgaver.</span>" },
         nygruppe: { text: "Ny opgavegruppe", tooltip: "<span>Giv den nye opgavegruppe et beskrivende navn.</span><span>Du kan efterfølgende tilføje flere opgaver til denne gruppe for at skabe bedre overblik over opgaverne i forløbet.</span>" },
         startdato: { text: "Startdato", tooltip: "<span>Vælg startdato for opgaven.</span><span>Startdato sættes til den dag, hvor opgaven skal påbegyndes.</span>" },
-        slutdato: { text: "Slutdato", tooltip: "<span>Vælg slutdato for opgaven.</span><span>Slutdato fungerer som en deadline for opgaven, og sættes til den dag, opgaven skal være afsluttet inden.</span><span>Slutdato kan tidligst sættes til dagen efter startdato for opgaven.</span>" },
+        slutdato: { text: "Deadline", tooltip: "<span>Vælg deadline for opgaven.</span><span>Deadline angiver den dag, opgaven senest skal være afsluttet.</span><span>Deadline kan tidligst sættes til dagen efter startdato for opgaven.</span>" },
         relativ_startdag: { text: "Relativ startdag", tooltip: "<span>Angiv relativ startdag for opgaven.</span><span>Relativ startdag bruges til at beregne startdatoen baseret på forløbets startdato.</span>" },
         relativ_slutdag: { text: "Relativ slutdag", tooltip: "<span>Angiv relativ slutdag for opgaven.</span><span>Relativ slutdag bruges til at beregne opgavens slutdato baseret på startdatoen, som tildeles når skabelonen omsættes til en opgave.</span>" },
         booking: { text: "Bookingtidspunkt", tooltip: "<span>Angiv bookingtidspunkt for opgaven.</span><span>Bookingtidspunkt bruges til at indikere hvornår den ansvarlige medarbejder skal hjælpe med opgaven, eller hvornår der er afsat tid til opgaven.</span><span><b>OBS</b>: Der oprettes ikke automatisk en aftale i kalenderen.</span>" }
@@ -616,7 +616,7 @@
                     @focus="focusedInput = inputFieldDescriptions.slutdato"
                     @blur="focusedInput = null"
                     required>
-                    <label for="enddate" class="floating-label">Slutdato</label>
+                    <label for="enddate" class="floating-label">Deadline</label>
                 </div>
             </div>
 
