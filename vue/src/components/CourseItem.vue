@@ -44,7 +44,7 @@
 </script>
 
 <template>
-    <router-link class="course-row" :class="{ 'is-complete': isCompleted }" :to="link">
+    <router-link class="course-row" :class="{ 'is-complete': isCompleted, 'is-author-only': course.isAuthorOnly }" :to="link">
         <span class="row-mark course-mark" :class="markClass" aria-hidden="true">{{ isTemplate ? 'S' : 'F' }}<span>{{ String(id).padStart(2, '0') }}</span></span>
 
         <span class="row-main">
@@ -56,8 +56,9 @@
         </span>
 
         <span class="row-meta">
+            <span v-if="course.isAuthorOnly" class="status-tag is-neutral">Forfatter</span>
             <span v-if="course.isPreparation" class="status-tag"><span class="status-dot"></span>Under forberedelse</span>
-            <template v-else-if="!isTemplate">
+            <template v-if="!course.isPreparation && !isTemplate">
                 <span class="row-dates"><i class="far fa-calendar-alt" aria-hidden="true"></i> {{ formatDate(course.startdate) }} – {{ formatDate(course.enddate) }}</span>
             </template>
             <span v-if="(isTemplate || course.isPreparation) && tasks" class="row-count">{{ countLabel(tasks.length) }}</span>
@@ -74,7 +75,8 @@
 <style scoped>
     .course-row { display: flex; align-items: center; gap: 16px; min-height: 68px; padding: 12px 18px; color: var(--ink); transition: background-color 150ms ease; }
     .course-row + .course-row { border-top: 1px solid var(--line); }
-    .course-row:hover { background: var(--wash2); }
+    .course-row:hover { background-color: var(--wash2); }
+    .course-row.is-author-only { background-size: 10px 10px; background-image: repeating-linear-gradient(45deg, #f4f4e8 0, #f4f4e8 1px, transparent 0, transparent 50%); }
     .course-row:hover .row-arrow { opacity: 1; transform: translateX(2px); }
     .course-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
     .row-mark { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; font: 700 15px/1 var(--font); }

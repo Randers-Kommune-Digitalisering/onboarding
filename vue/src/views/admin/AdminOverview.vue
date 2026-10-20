@@ -30,6 +30,8 @@
 						response.data = [response.data]
 
 					for (const item of response.data) {
+						item.isAuthorOnly = item.admin !== loggedInAdmin
+
 						if (item.isPreparation)
 							forloeb_preparation.value.push(item)
 						else

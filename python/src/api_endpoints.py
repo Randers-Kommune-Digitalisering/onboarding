@@ -1,5 +1,6 @@
 import logging
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
+from utils.access_control import is_current_user_admin
 from utils.db_connection import get_db_client
 from controllers.opgave_controller import (
     create_opgave_with_opgaveskabelon,
@@ -28,7 +29,6 @@ from controllers.forloeb_controller import (
     get_forloeb_by_current_user,
     start_preparation_forloeb,
     get_forloeb,
-    get_all_forloeb,
     get_forloeb_with_opgaver,
     get_forloeb_by_admin,
     complete_forloeb,
@@ -188,10 +188,9 @@ def start_forloeb_endpoint():
 
 @api_endpoints.route('/forloeb', methods=['GET'])
 def get_all_forloeb_endpoint():
-    admin_name = request.headers.get('adminmail')
-    if admin_name:
-        return get_forloeb_by_admin(admin_name)
-    return get_all_forloeb()
+    if is_current_user_admin():
+        return get_forloeb_by_admin()
+    return jsonify([]), 200
 
 
 @api_endpoints.route('/forloeb/<int:forloeb_id>', methods=['DELETE'])
