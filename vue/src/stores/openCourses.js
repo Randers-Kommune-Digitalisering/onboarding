@@ -98,6 +98,17 @@ const remove = (key) => {
     persist()
 }
 
+const reorder = (fromIndex, toIndex) => {
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)
+        || fromIndex < 0 || fromIndex >= state.tabs.length
+        || toIndex < 0 || toIndex >= state.tabs.length
+        || fromIndex === toIndex)
+        return
+
+    state.tabs.splice(toIndex, 0, state.tabs.splice(fromIndex, 1)[0])
+    persist()
+}
+
 const setTitle = (key, title) => {
     const tab = find(key)
     if (tab)
@@ -163,6 +174,7 @@ export const openCourses = {
     canOpen,
     open,
     remove,
+    reorder,
     setTitle,
     showNotice,
     dismissNotice,

@@ -1,6 +1,7 @@
 <script setup>
     import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
+    import Sortable from 'sortablejs'
 
     import { getForloebByAdmin, getForloebByLoggedInUser } from '@/services/forløbService.js'
     import { getForloebsskabeloner } from '@/services/forløbsskabelonService.js'
@@ -19,12 +20,14 @@
 
     const pickerOpen = ref(false)
     const pickerRef = ref(null)
+    const tabsRef = ref(null)
     const filterInput = ref(null)
     const filterText = ref('')
     const isLoading = ref(false)
     const loadFailed = ref(false)
     const courses = ref([])
     const templates = ref([])
+    let sortable
 
     const tabs = computed(() => openCourses.state.tabs)
     const onCourseRoute = computed(() => isCourseRoute(route))
@@ -136,8 +139,24 @@
             pickerOpen.value = false
     }
 
-    onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown))
-    onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPointerDown))
+    onMounted(() => {
+        document.addEventListener('pointerdown', onDocumentPointerDown)
+        sortable = Sortable.create(tabsRef.value, {
+            swapThreshold: 0.75,
+            animation: 150,
+            draggable: '.workspace-tab',
+            filter: 'button',
+            preventOnFilter: false,
+            onEnd: ({ oldIndex, newIndex }) => {
+                if (oldIndex != null && newIndex != null)
+                    openCourses.reorder(oldIndex, newIndex)
+            },
+        })
+    })
+    onBeforeUnmount(() => {
+        document.removeEventListener('pointerdown', onDocumentPointerDown)
+        sortable?.destroy()
+    })
 </script>
 
 <template>
@@ -145,7 +164,7 @@
         <div class="workspace-inner shell-width">
             <span class="workspace-label">ÅBNE FORLØB</span>
 
-            <nav class="workspace-tabs" aria-label="Åbne forløb">
+            <nav ref="tabsRef" class="workspace-tabs" aria-label="Åbne forløb">
                 <div v-for="tab in tabs" :key="tab.key" class="workspace-tab" :class="{ 'is-active': isActive(tab) }">
                     <a :href="tab.route.fullPath"
                        :aria-current="isActive(tab) ? 'page' : undefined"
