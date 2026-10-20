@@ -66,7 +66,12 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-	<p class="indent-tiny bold uppercase p-header-adjust">{{ isEditing ? 'Rediger forløbsskabelon' : 'Opret forløbsskabelon' }}</p>
+	<div class="content-intro">
+		<div>
+			<span class="eyebrow">FORLØBSSKABELON</span>
+			<h2>{{ isEditing ? 'Redigér forløbsskabelon' : 'Opret forløbsskabelon' }}</h2>
+		</div>
+	</div>
 
     <div
         v-if="focusedInput"

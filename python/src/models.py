@@ -22,6 +22,7 @@ class Forløb(Base):
     enddate = Column(DateTime, nullable=True)
     varighed = Column(Integer, nullable=True)
     admin = Column(String, nullable=False)
+    author = Column(String, nullable=False)
     usermail = Column(String, nullable=False)
     userdq = Column(String, nullable=False)
     opgave_grupper = relationship('OpgaveGruppe', back_populates='forløb', cascade='all, delete')

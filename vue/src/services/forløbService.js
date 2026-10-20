@@ -18,8 +18,8 @@ export const getForloebByAdmin = (config) => {
   return apiRequest({ method: 'get', url: `${API_URL}/forloeb`, config });
 };
 
-export const getForloebByEmail = (config) => {
-  return apiRequest({ method: 'get', url: `${API_URL}/mitforloeb`, config });
+export const getForloebByLoggedInUser = () => {
+  return apiRequest({ method: 'get', url: `${API_URL}/mitforloeb`});
 };
 
 export const getForloebById = (id, config) => {

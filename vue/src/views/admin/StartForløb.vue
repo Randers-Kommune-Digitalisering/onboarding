@@ -137,7 +137,12 @@
 <template>
     <div class="flex"><div class="max-width">
 
-    <p class="indent-tiny bold uppercase p-header-adjust">Start forløb</p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">FORLØB</span>
+            <h2>Start forløb</h2>
+        </div>
+    </div>
 
     <form @submit.prevent="submitForm">
     <div class="formContainer">

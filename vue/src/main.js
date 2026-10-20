@@ -7,6 +7,7 @@ import App from './App.vue'
 
 import { getUserInfo } from './services/keycloakService.js'
 import { installTooltipHelper } from './utils/tooltipHelper.js'
+import { openCourses, MAX_OPEN_COURSES, isCourseRoute, isExternalRoute, resolveCourseRef } from './stores/openCourses.js'
 
 // Import af views til routing
 import CreateOpgave from '@/views/admin/CreateOpgave.vue'
@@ -20,9 +21,8 @@ import MedarbejderOverview from '@/views/ny_medarbejder/MedarbejderOverview.vue'
 import AnsvarligOverview from '@/views/ansvarlig/AnsvarligOverview.vue'
 import AdminHelp from '@/views/admin/AdminHelp.vue'
 import Help from '@/views/Help.vue'
-import ForløbOverview from '@/views/ForløbOverview.vue'
+import CourseWorkspace from '@/views/CourseWorkspace.vue'
 import TemplateOverview from '@/views/admin/TemplateOverview.vue'
-import Blank from '@/views/Blank.vue'
 import Login from '@/views/Login.vue'
 import SendWelcome from './views/admin/SendWelcome.vue'
 
@@ -41,13 +41,13 @@ const routes = [
                 query: to.query,
             }
         },
-        meta: { roles: ['Admin'] }
+        meta: { roles: ['Admin'], formPage: true }
     },
     {
         path: '/create-forloeb',
         name: 'CreateForløb',
         component: CreateForløb,
-        meta: { roles: ['Admin'] }
+        meta: { roles: ['Admin'], formPage: true }
     },
     {
         path: '/edit-forloeb',
@@ -80,7 +80,7 @@ const routes = [
                 query: to.query,
             }
         },
-        meta: { roles: ['Admin', 'Medarbejder'] }
+        meta: { roles: ['Admin', 'Medarbejder'], formPage: true }
     },
     {
         path: '/create-forloebsskabelon',
@@ -97,7 +97,7 @@ const routes = [
                 query: to.query,
             }
         },
-        meta: { roles: ['Admin'] }
+        meta: { roles: ['Admin'], formPage: true }
     },
     {
         path: '/send-velkomst',
@@ -146,7 +146,7 @@ const routes = [
     },
     {
         path: '/forloeb-overview',
-        component: ForløbOverview,
+        component: CourseWorkspace,
         children: [
             {
                 path: 'edit-forloeb',
@@ -188,12 +188,6 @@ const routes = [
         meta: { roles: ['Admin', 'Medarbejder', 'Public'] }
     },
     {
-        path: '/reload',
-        name: 'Reload',
-        component: Blank,
-        meta: { roles: ['Admin', 'Medarbejder'] }
-    },
-    {
         path: '/login',
         name: 'Login',
         component: Login,
@@ -208,7 +202,15 @@ const routes = [
 // Opsætning af URL routing
 const router = createRouter({
     history: createWebHistory(),
-    routes
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition)
+            return savedPosition
+        // Course tabs restore their own scroll position when switched to
+        if (isCourseRoute(to) || to.path === from.path)
+            return false
+        return { top: 0 }
+    }
 })
 
 const app = createApp(App)
@@ -278,5 +280,33 @@ if (currentPath === '/')
     returnRoleBasedUrl().then(url => {
         router.push(url)
     })
+
+// Runs after the role guard above: course routes need a course id and respect the open-tab cap
+router.beforeEach(async (to, from) => {
+    if (!isCourseRoute(to))
+        return true
+
+    const courseRef = resolveCourseRef(to.query)
+    if (!courseRef)
+        return returnRoleBasedUrl()
+
+    if (isExternalRoute(to) || openCourses.canOpen(courseRef.key))
+        return true
+
+    openCourses.showNotice(`Du kan højst have ${MAX_OPEN_COURSES} forløb åbne. Luk et forløb for at åbne et nyt.`)
+    return from.matched.length > 0 ? false : returnRoleBasedUrl()
+})
+
+router.afterEach((to, from, failure) => {
+    if (failure || !isCourseRoute(to) || isExternalRoute(to))
+        return
+
+    const courseRef = resolveCourseRef(to.query)
+    if (courseRef)
+        openCourses.open(courseRef, to)
+})
+
+if (!isExternalRoute(router.resolve(currentRoute)))
+    openCourses.restore(router)
 
 app.mount('#app')

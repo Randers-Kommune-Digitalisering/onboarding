@@ -7,9 +7,12 @@
     import { createOpgaveskabelon, getOpgaveskabelonById, updateOpgaveskabelon, getOpgaveskabeloner } from '@/services/opgaveskabelonService.js'
     import { getForloebById } from '@/services/forløbService.js'
     import { getForloebsskabeloner } from '@/services/forløbsskabelonService.js'
+    import { openCourses } from '@/stores/openCourses.js'
 
     const route = useRoute()
     const router = useRouter()
+    // Snapshot of this editor's own tab route; the global route may switch to another tab while saving
+    const originRoute = { path: route.path, fullPath: route.fullPath, query: { ...route.query } }
 
     const forloeb = ref(null)
     const forloeb_id = ref(parseInt(route.query.id ?? route.query.tid, 10))
@@ -50,7 +53,7 @@
         gruppe: { text: "Opgavegruppe", tooltip: "<span>Vælg en opgavegruppe for at gruppere denne opgave med andre opgaver i forløbet.</span><span>Opgaver kan sorteres efter gruppe i forløbets opgaveoverblik, hvilket kan hjælpe med at skabe overblik i forløb med mange opgaver.</span>" },
         nygruppe: { text: "Ny opgavegruppe", tooltip: "<span>Giv den nye opgavegruppe et beskrivende navn.</span><span>Du kan efterfølgende tilføje flere opgaver til denne gruppe for at skabe bedre overblik over opgaverne i forløbet.</span>" },
         startdato: { text: "Startdato", tooltip: "<span>Vælg startdato for opgaven.</span><span>Startdato sættes til den dag, hvor opgaven skal påbegyndes.</span>" },
-        slutdato: { text: "Slutdato", tooltip: "<span>Vælg slutdato for opgaven.</span><span>Slutdato fungerer som en deadline for opgaven, og sættes til den dag, opgaven skal være afsluttet inden.</span><span>Slutdato kan tidligst sættes til dagen efter startdato for opgaven.</span>" },
+        slutdato: { text: "Deadline", tooltip: "<span>Vælg deadline for opgaven.</span><span>Deadline angiver den dag, opgaven senest skal være afsluttet.</span><span>Deadline kan tidligst sættes til dagen efter startdato for opgaven.</span>" },
         relativ_startdag: { text: "Relativ startdag", tooltip: "<span>Angiv relativ startdag for opgaven.</span><span>Relativ startdag bruges til at beregne startdatoen baseret på forløbets startdato.</span>" },
         relativ_slutdag: { text: "Relativ slutdag", tooltip: "<span>Angiv relativ slutdag for opgaven.</span><span>Relativ slutdag bruges til at beregne opgavens slutdato baseret på startdatoen, som tildeles når skabelonen omsættes til en opgave.</span>" },
         booking: { text: "Bookingtidspunkt", tooltip: "<span>Angiv bookingtidspunkt for opgaven.</span><span>Bookingtidspunkt bruges til at indikere hvornår den ansvarlige medarbejder skal hjælpe med opgaven, eller hvornår der er afsat tid til opgaven.</span><span><b>OBS</b>: Der oprettes ikke automatisk en aftale i kalenderen.</span>" }
@@ -391,11 +394,11 @@
 
     const returnToPrevious = (id = null) =>
 	{
-        if (router.currentRoute.value.path.startsWith('/forloeb-overview/')) {
-            const parentForloebId = route.query.forloebTid || route.query.forloebId || forloeb_id.value
-            const returnToTemplateOverview = route.query.forloebTid != null || route.query.tid != null
+        if (originRoute.path.startsWith('/forloeb-overview/')) {
+            const parentForloebId = originRoute.query.forloebTid || originRoute.query.forloebId || forloeb_id.value
+            const returnToTemplateOverview = originRoute.query.forloebTid != null || originRoute.query.tid != null
             const nextQuery = {
-                ...router.currentRoute.value.query,
+                ...originRoute.query,
                 item: id ?? opgaveId,
                 refreshTasks: Date.now().toString(),
             }
@@ -413,7 +416,7 @@
             delete nextQuery.edit
             delete nextQuery.forloebId
             delete nextQuery.forloebTid
-            router.replace({ path: '/forloeb-overview', query: nextQuery })
+            openCourses.replaceFromTab(router, originRoute, { path: '/forloeb-overview', query: nextQuery })
             return
         }
 
@@ -456,10 +459,15 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-    <p class="indent-tiny bold uppercase p-header-adjust">
-        {{ isEditing ? 'Rediger opgave' : isTemplate ? 'Opret opgaveskabelon' : 'Tilføj opgave' }}
-        {{ isTemplate ? '' : ' til ' + (forloeb?.name ?? 'forløbet') }}
-    </p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">{{ isTemplate ? 'OPGAVESKABELON' : 'OPGAVE' }}</span>
+            <h2>
+                {{ isEditing ? 'Redigér opgave' : isTemplate ? 'Opret opgaveskabelon' : 'Tilføj opgave' }}
+                {{ isTemplate ? '' : ' til ' + (forloeb?.name ?? 'forløbet') }}
+            </h2>
+        </div>
+    </div>
 
     <div
         v-if="focusedInput && !isAssistantSearchOpen"
@@ -611,7 +619,7 @@
                     @focus="focusedInput = inputFieldDescriptions.slutdato"
                     @blur="focusedInput = null"
                     required>
-                    <label for="enddate" class="floating-label">Slutdato</label>
+                    <label for="enddate" class="floating-label">Deadline</label>
                 </div>
             </div>
 
@@ -689,7 +697,6 @@
         right: 2.7rem;
     }
     .input-button {
-        border-radius: 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;

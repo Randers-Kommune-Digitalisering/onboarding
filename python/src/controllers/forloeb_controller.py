@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from flask import request, jsonify
 from datetime import datetime, timedelta
 from models import Forløb, Forløbsskabelon, Opgave, Ressource, OpgaveGruppe
@@ -5,18 +6,16 @@ from utils.db_connection import get_db_client
 from utils.config import MAIL_DESC_NEW_TASK_ANSVARLIG
 from utils.access_control import get_current_user_email, is_current_user_admin, user_can_access_forloeb
 from controllers.mail_controller import plan_mail, create_mail_ansvarlig
-import logging
 from sqlalchemy.orm import selectinload
-
-logger = logging.getLogger(__name__)
 
 db_client = get_db_client()
 
 
-def create_forloeb():
+def create_forloeb():  # This endpoint can only be called manually (set query param `prep=false` when creating a new course)
     session = db_client.get_session()
     try:
         data = request.json
+        logged_in_user_email = get_current_user_email()
         required_fields = ['name', 'startdate', 'enddate', 'admin', 'usermail', 'userdq']
         if not all(field in data for field in required_fields):
             return jsonify({"error": f"Missing required fields: {', '.join(required_fields)}"}), 400
@@ -26,6 +25,7 @@ def create_forloeb():
             startdate=datetime.fromisoformat(data['startdate']),
             enddate=datetime.fromisoformat(data['enddate']),
             admin=data['admin'],
+            author=logged_in_user_email,
             usermail=data['usermail'],
             userdq=data['userdq'],
             isPreparation=False
@@ -88,6 +88,7 @@ def create_forloeb():
 
 
 def create_forloeb_preparation():
+    logged_in_user_email = get_current_user_email()
     session = db_client.get_session()
     try:
         data = request.json
@@ -102,6 +103,7 @@ def create_forloeb_preparation():
             startdate=None,  # Set when started
             enddate=None,    # Set when started
             admin=data['admin'],
+            author=logged_in_user_email,
             usermail=data['usermail'],
             userdq=data['userdq'],
             isPreparation=True
@@ -252,7 +254,7 @@ def get_forloeb(forloeb_id: int):
         session.close()
 
 
-def get_all_forloeb():
+def get_all_forloeb():  # Deprecated - do not use, as it exposes all forløb without access control
     session = db_client.get_session()
     try:
         forloeb_list = session.query(Forløb).all()
@@ -296,14 +298,14 @@ def get_forloeb_with_opgaver():
         session.close()
 
 
-def get_forloeb_by_email(mail):
+def get_forloeb_by_current_user():
     session = db_client.get_session()
     try:
-        mail = get_current_user_email() or mail
+        mail = get_current_user_email()
         if not mail:
             return jsonify(None), 200
 
-        forloeb = session.query(Forløb).filter(Forløb.usermail.ilike(mail.lower())).first()
+        forloeb = session.query(Forløb).filter(Forløb.usermail.ilike(mail.lower()), Forløb.isPreparation.is_(False)).first()
         if not forloeb:
             return jsonify(None), 200
 
@@ -335,7 +337,8 @@ def get_forloeb_by_email(mail):
         session.close()
 
 
-def get_forloeb_by_admin(admin_name):
+def get_forloeb_by_admin():
+    logged_in_user_email = get_current_user_email()
     session = db_client.get_session()
     try:
         forloeb_list = (
@@ -344,7 +347,7 @@ def get_forloeb_by_admin(admin_name):
                 selectinload(Forløb.opgave_grupper),
                 selectinload(Forløb.mails),
             )
-            .filter_by(admin=admin_name)
+            .filter(or_(Forløb.admin == logged_in_user_email, Forløb.author == logged_in_user_email))
             .all()
         )
         if not forloeb_list:

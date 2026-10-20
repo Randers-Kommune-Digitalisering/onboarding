@@ -138,7 +138,12 @@ Randers Kommune",
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-    <p class="indent-tiny bold uppercase p-header-adjust">Send velkomstmail</p>
+    <div class="content-intro">
+        <div>
+            <span class="eyebrow">FORLØB</span>
+            <h2>Send velkomstmail</h2>
+        </div>
+    </div>
 
 
     <div
@@ -209,25 +214,26 @@ Randers Kommune",
     }
     .previewContainer {
         position: relative;
-        background-color: var(--color-input-disabled-bg);
         width: 100%;
-        padding: 1.6rem 0.8rem 0.6rem 0.8rem;
-        box-sizing: border-box;
-        border-radius: 0.2rem;
-        border: 0rem;
-        transition-duration: 200ms;
-        transition: opacity 0s;
-        font-size: 0.8rem;
+        padding: 26px 12px 12px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: var(--wash2);
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
     }
     .floating-previewContainer-label {
         position: absolute;
-        top: 0.5rem;
-        left: 0.8rem;
-        color: #8b8b8b;
-        font-size: 0.8em;
+        top: 7px;
+        left: 13px;
+        color: var(--green);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
     }
     input:disabled, textarea:disabled {
         color: inherit;
-        font-weight: 400;
     }
 </style>

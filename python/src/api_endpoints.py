@@ -1,5 +1,6 @@
 import logging
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
+from utils.access_control import is_current_user_admin
 from utils.db_connection import get_db_client
 from controllers.opgave_controller import (
     create_opgave_with_opgaveskabelon,
@@ -25,11 +26,10 @@ from controllers.forloebsskabelon_controller import (
 from controllers.forloeb_controller import (
     create_forloeb,
     create_forloeb_preparation,
+    get_forloeb_by_current_user,
     start_preparation_forloeb,
     get_forloeb,
-    get_all_forloeb,
     get_forloeb_with_opgaver,
-    get_forloeb_by_email,
     get_forloeb_by_admin,
     complete_forloeb,
     update_forloeb,
@@ -72,6 +72,7 @@ from controllers.mail_controller import (
     send_welcome_mail,
     send_planned_new_tasks_notifications,
     notify_expired_tasks_aggregated,
+    notify_upcoming_tasks_aggregated,
     purge_mails,
     get_planned_mails,
     delete_planned_mail,
@@ -110,8 +111,8 @@ def external_ressource_download_endpoint(ressource_id):
 
 @api_endpoints.route('/mitforloeb', methods=['GET'])
 def get_forloeb_by_email_endpoint():
-    mail = request.headers.get('usermail')
-    return get_forloeb_by_email(mail)
+    # mail = request.headers.get('usermail')
+    return get_forloeb_by_current_user()
 
 
 @api_endpoints.route('/opgave', methods=['POST'])
@@ -187,10 +188,9 @@ def start_forloeb_endpoint():
 
 @api_endpoints.route('/forloeb', methods=['GET'])
 def get_all_forloeb_endpoint():
-    admin_name = request.headers.get('adminmail')
-    if admin_name:
-        return get_forloeb_by_admin(admin_name)
-    return get_all_forloeb()
+    if is_current_user_admin():
+        return get_forloeb_by_admin()
+    return jsonify([]), 200
 
 
 @api_endpoints.route('/forloeb/<int:forloeb_id>', methods=['DELETE'])
@@ -343,6 +343,11 @@ def get_fullname_endpoint():
 @api_endpoints.route('/users/admin', methods=['GET'])
 def get_all_admin_data_endpoint():
     return get_admin_data()
+
+
+@api_endpoints.route('/cron/notify-upcoming-tasks', methods=['POST'])
+def notify_upcoming_tasks_endpoint():
+    return notify_upcoming_tasks_aggregated()
 
 
 @api_endpoints.route('/cron/notify-expired-tasks', methods=['POST'])

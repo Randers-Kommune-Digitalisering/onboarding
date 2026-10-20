@@ -3,9 +3,12 @@
     import { useRoute, useRouter } from 'vue-router'
 	
 	import { createRessource, createRessourceFile, getRessourceById, updateRessource, deleteRessource } from '@/services/ressourceService.js'
+	import { openCourses } from '@/stores/openCourses.js'
 
     const route = useRoute()
 	const router = useRouter()
+	// Snapshot of this editor's own tab route; the global route may switch to another tab while saving
+	const originRoute = { path: route.path, fullPath: route.fullPath, query: { ...route.query } }
 
 	const id = parseInt(route.query.id ?? route.query.tid, 10)
     const isTemplate = route.query.id == null
@@ -21,6 +24,13 @@
         name: "",
         url: ""
     })
+
+	const focusedInput = ref(null)
+	const inputFieldDescriptions = {
+		name: { text: "Ressourcens navn", tooltip: "<span>Giv ressourcen et kort, beskrivende navn.</span><span>Navnet vises på opgaven, så medarbejderen kan se, hvad linket eller filen indeholder.</span>" },
+		url: { text: "Link til ressource", tooltip: "<span>Indsæt adressen på den webside, ressourcen findes på.</span><span>Hvis adressen ikke starter med http:// eller https://, tilføjes https:// automatisk.</span><span>Linket åbner i en ny fane.</span>" },
+		file: { text: "Upload fil", tooltip: "<span>Vælg en fil, som medarbejderen skal kunne hente fra opgaven.</span><span>Tilladte filtyper er PDF, Word, Excel, PowerPoint og tekstfiler. Filen må højst fylde 20MB.</span>" }
+	}
 
 	const addHttp = () => {
 		if (!inputFields.value.url)
@@ -146,13 +156,14 @@
 
 	const returnToPrevious = () =>
 	{
-		if (router.currentRoute.value.path.startsWith('/forloeb-overview/')) {
-			const parentForloebId = router.currentRoute.value.query.forloebTid || router.currentRoute.value.query.forloebId
-			const isTemplateContext = router.currentRoute.value.query.forloebTid != null
-				|| router.currentRoute.value.query.template === 'true'
-				|| router.currentRoute.value.query.tid != null
+		const originQuery = originRoute.query
+		if (originRoute.path.startsWith('/forloeb-overview/')) {
+			const parentForloebId = originQuery.forloebTid || originQuery.forloebId
+			const isTemplateContext = originQuery.forloebTid != null
+				|| originQuery.template === 'true'
+				|| originQuery.tid != null
 			const nextQuery = {
-				...router.currentRoute.value.query,
+				...originQuery,
 				item: opgaveId.value,
 				refreshTasks: Date.now().toString(),
 			}
@@ -167,7 +178,7 @@
 			delete nextQuery.edit
 			delete nextQuery.forloebId
 			delete nextQuery.forloebTid
-			router.replace({ path: '/forloeb-overview', query: nextQuery })
+			openCourses.replaceFromTab(router, originRoute, { path: '/forloeb-overview', query: nextQuery })
 			return
 		}
 
@@ -177,7 +188,7 @@
 			router.replace({
 				path: '/forloeb-overview',
 				query: {
-					id: router.currentRoute.value.query.forloebId ?? router.currentRoute.value.query.forloebTid,
+					id: originQuery.forloebId ?? originQuery.forloebTid,
 					item: opgaveId.value,
 					refreshTasks: Date.now().toString(),
 				},
@@ -190,7 +201,7 @@
 			router.replace({
 				path: '/forloeb-overview',
 				query: {
-					id: router.currentRoute.value.query.forloebId ?? router.currentRoute.value.query.forloebTid,
+					id: originQuery.forloebId ?? originQuery.forloebTid,
 					item: opgaveId.value,
 					refreshTasks: Date.now().toString(),
 				},
@@ -213,14 +224,30 @@
 <template>
     <div class="flex"><div class="max-width"><!-- wrapper -->
 
-	<p v-if="fileTooLarge" class="indent-tiny notification red">
-		<span class="bold">Fejl</span>: Filen overstiger den tilladte størrelse på 20MB. Vælg en anden fil.
-	</p>
+	<div v-if="fileTooLarge" class="alert alert-error" role="alert">
+		<i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+		<span>Filen overstiger den tilladte størrelse på 20MB. Vælg en anden fil.</span>
+	</div>
 
-	<p class="indent-tiny bold uppercase p-header-adjust">Tilføj ressource til opgaven</p>
+	<div class="content-intro">
+		<div>
+			<span class="eyebrow">RESSOURCE</span>
+			<h2>{{ isEditing ? 'Redigér ressource' : 'Tilføj ressource til opgaven' }}</h2>
+		</div>
+	</div>
+
+	<div
+		v-if="focusedInput"
+		class="float-right helper-text"
+		@mousedown.prevent
+		@click.prevent
+	>
+		<div class="header-small">{{ focusedInput.text }}</div>
+		<div v-html="focusedInput.tooltip"></div>
+	</div>
 
 	<form @submit.prevent="submitForm">
-	<div class="formContainer">
+	<div class="formContainer float-right-gutter">
 
 		<div class="inputContainer inline">
 			<span class="text">Ressourcetype:</span>
@@ -231,19 +258,25 @@
 		</div>
 
 		<div class="inputContainer">
-			<input type="text" id="title" name="title" placeholder=" " v-model="inputFields.name" required>
+			<input type="text" id="title" name="title" placeholder=" " v-model="inputFields.name" required
+				@focus="focusedInput = inputFieldDescriptions.name"
+				@blur="focusedInput = null">
 			<label for="title" class="floating-label">Ressourcens navn</label>
 		</div>
 
 		<div class="inputContainer" v-if="resourceType === 'link'">
-			<input type="text" id="url" name="url" placeholder=" " v-model="inputFields.url" :class="{'invalid': !isUrlValid}" @change="addHttp()" required>
+			<input type="text" id="url" name="url" placeholder=" " v-model="inputFields.url" :class="{'invalid': !isUrlValid}" @change="addHttp()" required
+				@focus="focusedInput = inputFieldDescriptions.url"
+				@blur="focusedInput = null">
 			<label for="url" class="floating-label">Link til ressource</label>
 		</div>
 
 		<div class="inputContainer" v-else-if="!isEditing">
 			<input type="file" id="file" name="file" placeholder=" "
 				accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-				@change="onFileSelected" required>
+				@change="onFileSelected" required
+				@focus="focusedInput = inputFieldDescriptions.file"
+				@blur="focusedInput = null">
 			<label for="file" class="floating-label">Upload fil</label>
 		</div>
 
@@ -278,7 +311,11 @@
 		gap: 1rem;
 	}
 	.inputContainer.inline .text {
-		margin-left: 0.6rem;
-		color: var(--color-text-faded)
+		margin-left: 2px;
+		color: var(--muted);
+		font-size: 13px;
+	}
+	.alert {
+		margin-bottom: 20px;
 	}
 </style>
