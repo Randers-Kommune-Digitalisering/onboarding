@@ -3,7 +3,7 @@ import sys
 from dotenv import load_dotenv
 
 
-# loads .env file, will not overide already set enviroment variables (will do nothing when testing, building and deploying)
+# loads .env file, will not override already set environment variables (will do nothing when testing, building and deploying)
 load_dotenv()
 
 # Test defaults: keep pytest runs deterministic regardless of local .env.
@@ -40,9 +40,11 @@ KEYCLOAK_CLIENT_ID = os.environ["KEYCLOAK_CLIENT_ID"].strip()
 KEYCLOAK_CLIENT_SECRET = os.environ["KEYCLOAK_CLIENT_SECRET"].strip()
 COOKIE_SECRET = os.environ["COOKIE_SECRET"].strip()
 
-# Mail description constants used to categorize planned emails in DB
+# Mail description constants used to categorize emails in DB
 MAIL_DESC_NEW_TASK_USER = "NEW_TASK_USER"
 MAIL_DESC_NEW_TASK_ANSVARLIG = "NEW_TASK_ANSVARLIG"
+MAIL_DESC_EXPIRED_TASK_USER = "EXPIRED_TASK_USER"
+MAIL_DESC_EXPIRED_TASK_ANSVARLIG = "EXPIRED_TASK_ANSVARLIG"
 
 # SMTP settings for rk-digi EmailSender
 MAIL_SMTP_SERVER = os.getenv("MAIL_SMTP_SERVER", os.getenv("SMTP_SERVER", "")).strip()
