@@ -72,6 +72,7 @@ from controllers.mail_controller import (
     send_welcome_mail,
     send_planned_new_tasks_notifications,
     notify_expired_tasks_aggregated,
+    notify_upcoming_tasks_aggregated,
     purge_mails,
     get_planned_mails,
     delete_planned_mail,
@@ -343,6 +344,11 @@ def get_fullname_endpoint():
 @api_endpoints.route('/users/admin', methods=['GET'])
 def get_all_admin_data_endpoint():
     return get_admin_data()
+
+
+@api_endpoints.route('/cron/notify-upcoming-tasks', methods=['POST'])
+def notify_upcoming_tasks_endpoint():
+    return notify_upcoming_tasks_aggregated()
 
 
 @api_endpoints.route('/cron/notify-expired-tasks', methods=['POST'])

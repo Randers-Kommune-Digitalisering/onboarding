@@ -12,6 +12,8 @@ from utils.config import (
     MAIL_SMTP_SERVER,
     MAIL_DESC_NEW_TASK_USER,
     MAIL_DESC_NEW_TASK_ANSVARLIG,
+    MAIL_DESC_EXPIRED_TASK_USER,
+    MAIL_DESC_EXPIRED_TASK_ANSVARLIG,
     ONBOARDING_BASE_URL,
 )
 from utils.client_url import get_client_base_url
@@ -19,13 +21,14 @@ from models import Mail, MailAttachment, Forløb, Opgave
 from utils.db_connection import get_db_client
 from utils.access_control import is_current_user_admin
 from sqlalchemy.orm import selectinload
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 
 db_client = get_db_client()
 logger = logging.getLogger(__name__)
 
 
 SUBJECT_ANSVARLIG_NEW_TASK = "Ny opgave tildelt i onboardingforløb"
+EXPIRED_TASK_REMINDER_INTERVAL = timedelta(days=3)
 
 
 # Helpers
@@ -692,33 +695,130 @@ def send_welcome_mail(forloeb_id: int, subject: str, custom_message: str) -> tup
         session.close()
 
 
+def _normalize_email(email: str | None) -> str:
+    return (email or "").strip().lower()
+
+
+def _get_last_expired_reminders(session, opgave_ids: List[int]) -> Dict[tuple[int, str], datetime]:
+    """Return the latest sent expired-task reminder per (OpgaveID, normalized recipient)."""
+    if not opgave_ids:
+        return {}
+
+    recipient_key = func.lower(func.trim(Mail.recipient))
+    rows = (
+        session.query(Mail.OpgaveID, recipient_key, func.max(Mail.sent))
+        .filter(
+            Mail.OpgaveID.in_(opgave_ids),
+            Mail.isSent.is_(True),
+            Mail.sent.is_not(None),
+            Mail.description.in_([MAIL_DESC_EXPIRED_TASK_USER, MAIL_DESC_EXPIRED_TASK_ANSVARLIG]),
+        )
+        .group_by(Mail.OpgaveID, recipient_key)
+        .all()
+    )
+    return {(opgave_id, recipient): last_sent for opgave_id, recipient, last_sent in rows}
+
+
+def _is_expired_reminder_due(
+    last_reminders: Dict[tuple[int, str], datetime], opgave_id: int, recipient: str, now: datetime
+) -> bool:
+    last_sent = last_reminders.get((opgave_id, recipient))
+    return last_sent is None or now - last_sent >= EXPIRED_TASK_REMINDER_INTERVAL
+
+
+def _build_expired_reminder_rows(
+    recipient: str, subject: str, body: str, opgaver: List[Opgave], description: str, sent_at: datetime
+) -> List[Mail]:
+    """Build one sent Mail row per task so future runs can enforce the reminder interval."""
+    return [
+        Mail(
+            subject=subject,
+            body="",
+            recipient=recipient,
+            created=sent_at,
+            isSent=True,
+            sent=sent_at,
+            OpgaveID=opgave.OpgaveID,
+            ForløbID=opgave.ForløbID,
+            description=description,
+        )
+        for opgave in opgaver
+    ]
+
+
+def _commit_expired_reminder_rows(session, rows: List[Mail]) -> bool:
+    """Persist all buffered reminder rows in a single commit."""
+    if not rows:
+        return True
+    try:
+        session.add_all(rows)
+        session.commit()
+        return True
+    except Exception as e:
+        session.rollback()
+        logger.error(
+            f"Error recording expired-task reminders for tasks {sorted({r.OpgaveID for r in rows})}: {e}"
+        )
+        return False
+
+
 def notify_expired_tasks_aggregated() -> tuple[Response, int]:
-    """Cron: Send consolidated notifications for expired tasks (repeat reminders)."""
+    """Cron: Send consolidated notifications for expired tasks (repeat reminders).
+
+    Only tasks on active courses are included, i.e. courses whose end date is today or later.
+    Courses without an end date (under preparation) are skipped.
+
+    A task is only included for a given recipient if that recipient has never received an
+    expired-task reminder for it, or the latest one was sent at least
+    EXPIRED_TASK_REMINDER_INTERVAL ago.
+    """
     session = db_client.get_session()
+    # Reminder rows for successfully sent mails; committed once after all sends.
+    pending_rows: List[Mail] = []
     try:
         now = datetime.now()
+        today_start = datetime.combine(now.date(), datetime.min.time())
         opgaver = (
             session.query(Opgave)
+            .join(Opgave.forløb)
             .options(selectinload(Opgave.forløb))
-            .filter(Opgave.slutdato <= now, Opgave.result.is_(False), Opgave.ForløbID.is_not(None))
+            .filter(
+                Opgave.slutdato <= now,
+                Opgave.result.is_(False),
+                # Only active courses (end date today or later); courses without an end date are skipped.
+                Forløb.enddate >= today_start,
+            )
             .all()
         )
 
         if not opgaver:
             return jsonify({"message": "No expired tasks to notify"}), 200
 
+        last_reminders = _get_last_expired_reminders(session, [o.OpgaveID for o in opgaver])
+
         forloeb_to_opgaver: Dict[int, Dict[int, Opgave]] = {}
         ansvarlig_to_opgaver: Dict[str, Dict[int, Opgave]] = {}
+        skipped_user = 0
+        skipped_ansvarlig = 0
 
         for opgave in opgaver:
             forloeb = getattr(opgave, "forløb", None)
             if not forloeb:
                 continue
 
-            forloeb_to_opgaver.setdefault(forloeb.ForløbID, {})[opgave.OpgaveID] = opgave
-            ansvarlig_email = (getattr(opgave, "ansvarligEmail", None) or "").strip().lower()
+            user_email = _normalize_email(getattr(forloeb, "usermail", None))
+            if user_email:
+                if _is_expired_reminder_due(last_reminders, opgave.OpgaveID, user_email, now):
+                    forloeb_to_opgaver.setdefault(forloeb.ForløbID, {})[opgave.OpgaveID] = opgave
+                else:
+                    skipped_user += 1
+
+            ansvarlig_email = _normalize_email(getattr(opgave, "ansvarligEmail", None))
             if ansvarlig_email:
-                ansvarlig_to_opgaver.setdefault(ansvarlig_email, {})[opgave.OpgaveID] = opgave
+                if _is_expired_reminder_due(last_reminders, opgave.OpgaveID, ansvarlig_email, now):
+                    ansvarlig_to_opgaver.setdefault(ansvarlig_email, {})[opgave.OpgaveID] = opgave
+                else:
+                    skipped_ansvarlig += 1
 
         sent_user = 0
         sent_ansvarlig = 0
@@ -746,6 +846,10 @@ def notify_expired_tasks_aggregated() -> tuple[Response, int]:
             body = compose_mail_content(template, context)
             if send_mail(forloeb.usermail, subject, body, reply_to=getattr(forloeb, "admin", None)):
                 sent_user += 1
+                pending_rows.extend(_build_expired_reminder_rows(
+                    forloeb.usermail, subject, body, list(opgaver_by_id.values()),
+                    MAIL_DESC_EXPIRED_TASK_USER, now,
+                ))
 
         for ansvarlig_email, opgaver_by_id in ansvarlig_to_opgaver.items():
             context = {
@@ -762,6 +866,13 @@ def notify_expired_tasks_aggregated() -> tuple[Response, int]:
             body = compose_mail_content(template, context)
             if send_mail(ansvarlig_email, subject, body):
                 sent_ansvarlig += 1
+                pending_rows.extend(_build_expired_reminder_rows(
+                    ansvarlig_email, subject, body, list(opgaver_by_id.values()),
+                    MAIL_DESC_EXPIRED_TASK_ANSVARLIG, now,
+                ))
+
+        recorded = _commit_expired_reminder_rows(session, pending_rows)
+        pending_rows = []
 
         return (
             jsonify(
@@ -772,12 +883,87 @@ def notify_expired_tasks_aggregated() -> tuple[Response, int]:
                     "ansvarlig_count": len(ansvarlig_to_opgaver),
                     "sent_user": sent_user,
                     "sent_ansvarlig": sent_ansvarlig,
+                    "skipped_user_recently_notified": skipped_user,
+                    "skipped_ansvarlig_recently_notified": skipped_ansvarlig,
+                    "reminders_recorded": recorded,
                 }
             ),
             200,
         )
     except Exception as e:
+        session.rollback()
+        # Still record reminders for mails that already went out, to avoid duplicates next run.
+        _commit_expired_reminder_rows(session, pending_rows)
         logger.error(f"Error notifying expired tasks: {e}")
         return jsonify({"message": "Error notifying expired tasks", "error": str(e)}), 500
+    finally:
+        session.close()
+
+
+def notify_upcoming_tasks_aggregated() -> tuple[Response, int]:
+    """Cron: Notify each ansvarlig about their tasks starting tomorrow (one aggregated mail per ansvarlig).
+
+    "Tomorrow" is the next calendar day, not the next 24 hours, so the result does not depend
+    on the exact time of day the cron runs. Intended to run once per day.
+    """
+    session = db_client.get_session()
+    try:
+        tomorrow_start = datetime.combine(datetime.now().date() + timedelta(days=1), datetime.min.time())
+        day_after_start = tomorrow_start + timedelta(days=1)
+        opgaver = (
+            session.query(Opgave)
+            .options(selectinload(Opgave.forløb))
+            .filter(
+                Opgave.startdato >= tomorrow_start,
+                Opgave.startdato < day_after_start,
+                Opgave.result.is_(False),
+                Opgave.ForløbID.is_not(None),
+            )
+            .all()
+        )
+
+        if not opgaver:
+            return jsonify({"message": "No upcoming tasks to notify"}), 200
+
+        ansvarlig_to_opgaver: Dict[str, Dict[int, Opgave]] = {}
+        for opgave in opgaver:
+            if not getattr(opgave, "forløb", None):
+                continue
+            ansvarlig_email = _normalize_email(getattr(opgave, "ansvarligEmail", None))
+            if ansvarlig_email:
+                ansvarlig_to_opgaver.setdefault(ansvarlig_email, {})[opgave.OpgaveID] = opgave
+
+        sent_ansvarlig = 0
+        subject = "Kommende opgaver i onboardingforløb"
+        template = (
+            "Kære kollega,\n\n"
+            "Du er ansvarlig for én eller flere opgaver i onboardingforløb, som starter i morgen.\n\n"
+            "{tasks}\n"
+            "Med venlig hilsen,\n"
+            "Randers Kommune"
+        )
+
+        for ansvarlig_email, opgaver_by_id in ansvarlig_to_opgaver.items():
+            context = {
+                "tasks": _render_task_blocks_for_ansvarlig(list(opgaver_by_id.values())),
+            }
+            body = compose_mail_content(template, context)
+            if send_mail(ansvarlig_email, subject, body):
+                sent_ansvarlig += 1
+
+        return (
+            jsonify(
+                {
+                    "message": "Upcoming task notifications sent",
+                    "upcoming_task_count": len(opgaver),
+                    "ansvarlig_count": len(ansvarlig_to_opgaver),
+                    "sent_ansvarlig": sent_ansvarlig,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Error notifying upcoming tasks: {e}")
+        return jsonify({"message": "Error notifying upcoming tasks", "error": str(e)}), 500
     finally:
         session.close()
