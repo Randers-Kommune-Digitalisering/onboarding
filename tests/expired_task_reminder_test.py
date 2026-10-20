@@ -171,6 +171,7 @@ def test_only_recently_notified_tasks_are_excluded_from_aggregate(db, sent):
     assert f"item={second_id}" in ansvarlig_bodies[0]
     assert f"item={first_id}" not in ansvarlig_bodies[0]
 
+
 def test_reminder_rows_are_committed_once(db, sent, monkeypatch):
     _seed_expired_task(db)
     _seed_expired_task(db)
