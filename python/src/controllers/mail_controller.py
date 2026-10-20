@@ -733,7 +733,7 @@ def _build_expired_reminder_rows(
     return [
         Mail(
             subject=subject,
-            body=body,
+            body="",
             recipient=recipient,
             created=sent_at,
             isSent=True,
