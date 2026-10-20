@@ -888,3 +888,72 @@ def notify_expired_tasks_aggregated() -> tuple[Response, int]:
         return jsonify({"message": "Error notifying expired tasks", "error": str(e)}), 500
     finally:
         session.close()
+
+
+def notify_upcoming_tasks_aggregated() -> tuple[Response, int]:
+    """Cron: Notify each ansvarlig about their tasks starting tomorrow (one aggregated mail per ansvarlig).
+
+    "Tomorrow" is the next calendar day, not the next 24 hours, so the result does not depend
+    on the exact time of day the cron runs. Intended to run once per day.
+    """
+    session = db_client.get_session()
+    try:
+        tomorrow_start = datetime.combine(datetime.now().date() + timedelta(days=1), datetime.min.time())
+        day_after_start = tomorrow_start + timedelta(days=1)
+        opgaver = (
+            session.query(Opgave)
+            .options(selectinload(Opgave.forløb))
+            .filter(
+                Opgave.startdato >= tomorrow_start,
+                Opgave.startdato < day_after_start,
+                Opgave.result.is_(False),
+                Opgave.ForløbID.is_not(None),
+            )
+            .all()
+        )
+
+        if not opgaver:
+            return jsonify({"message": "No upcoming tasks to notify"}), 200
+
+        ansvarlig_to_opgaver: Dict[str, Dict[int, Opgave]] = {}
+        for opgave in opgaver:
+            if not getattr(opgave, "forløb", None):
+                continue
+            ansvarlig_email = _normalize_email(getattr(opgave, "ansvarligEmail", None))
+            if ansvarlig_email:
+                ansvarlig_to_opgaver.setdefault(ansvarlig_email, {})[opgave.OpgaveID] = opgave
+
+        sent_ansvarlig = 0
+        subject = "Kommende opgaver i onboardingforløb"
+        template = (
+            "Kære kollega,\n\n"
+            "Du er ansvarlig for én eller flere opgaver i onboardingforløb, som starter i morgen.\n\n"
+            "{tasks}\n"
+            "Med venlig hilsen,\n"
+            "Randers Kommune"
+        )
+
+        for ansvarlig_email, opgaver_by_id in ansvarlig_to_opgaver.items():
+            context = {
+                "tasks": _render_task_blocks_for_ansvarlig(list(opgaver_by_id.values())),
+            }
+            body = compose_mail_content(template, context)
+            if send_mail(ansvarlig_email, subject, body):
+                sent_ansvarlig += 1
+
+        return (
+            jsonify(
+                {
+                    "message": "Upcoming task notifications sent",
+                    "upcoming_task_count": len(opgaver),
+                    "ansvarlig_count": len(ansvarlig_to_opgaver),
+                    "sent_ansvarlig": sent_ansvarlig,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Error notifying upcoming tasks: {e}")
+        return jsonify({"message": "Error notifying upcoming tasks", "error": str(e)}), 500
+    finally:
+        session.close()
